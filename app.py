@@ -386,15 +386,6 @@ def render_history():
     for msg in st.session_state.messages:
         if msg["role"] == "system":
             continue
-        if msg["role"] == "assistant" and "제목:" in msg["content"]:
-            chat_part, mail_part = split_mail(msg["content"])
-            # 대화 부분만 버블로 표시
-            if chat_part:
-                st.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
-            # 메일 초안은 복사 블록에서만
-            if mail_part:
-                with st.expander("📋 메일 복사하기"):
-                    st.code(mail_part, language="text")
         else:
             st.markdown(bubble(msg["role"], md_to_html(msg["content"])), unsafe_allow_html=True)
 
