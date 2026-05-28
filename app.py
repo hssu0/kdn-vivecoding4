@@ -4,227 +4,279 @@ import os
 
 st.set_page_config(page_title="KDN 업무 메일 도우미", page_icon="✉️", layout="wide")
 
-# ── CSS ───────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  CSS  v2
+# ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
-/* 폰트 (Material Icons 보호 위해 * 제외) */
+/* 폰트 (Material Icons 보호: * 제외) */
 html, body, .stApp, .main,
-h1, h2, h3, h4, h5, h6, p, label,
-input, textarea, button,
+h1,h2,h3,h4,h5,h6,p,label,
+input,textarea,button,
 [data-testid="stSidebar"],
 [data-testid="stMarkdownContainer"],
 [data-testid="stChatInput"] textarea {
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 
-/* ════ 배경 ════ */
+/* ═══════════════════════════════════════════
+   PAGE
+   ═══════════════════════════════════════════ */
 .stApp {
-    background: linear-gradient(160deg, #eff6ff 0%, #dbeafe 40%, #e0f2fe 70%, #f0f9ff 100%) fixed !important;
+    background: #f0f5ff !important;
 }
 .main .block-container {
     background: transparent !important;
     padding-top: 1.4rem !important;
-    max-width: 860px !important;
+    max-width: 820px !important;
 }
 
-/* ════ 헤더 ════ */
+/* ═══════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════ */
 .kdn-header {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #0ea5e9 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #38bdf8 100%);
     color: #fff;
-    padding: 1.4rem 2rem;
-    border-radius: 18px;
-    margin-bottom: 1.2rem;
-    box-shadow: 0 6px 28px rgba(37,99,235,0.26);
+    padding: 1.3rem 1.8rem;
+    border-radius: 16px;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.22);
 }
-.kdn-header h1 { margin: 0 0 0.2rem; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
-.kdn-header p  { margin: 0; font-size: 0.86rem; opacity: 0.88; }
+.kdn-header h1 {
+    margin: 0 0 0.15rem;
+    font-size: 1.42rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+.kdn-header p  { margin: 0; font-size: 0.84rem; opacity: 0.88; }
 .kdn-pill {
     display: inline-block;
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 30px;
-    padding: 0.14rem 0.68rem;
-    font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.32);
+    border-radius: 99px;
+    padding: 0.12rem 0.65rem;
+    font-size: 0.69rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
 }
 
-/* ════ 사이드바 ════ */
+/* ═══════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════ */
 [data-testid="stSidebar"] {
     background: #ffffff !important;
-    border-right: 1px solid #dbeafe !important;
+    border-right: 1px solid #bfdbfe !important;
 }
 [data-testid="stSidebar"] > div:first-child { padding-top: 1rem; }
 
+/* 섹션 라벨 */
 .sb-label {
-    font-size: 0.68rem; font-weight: 700; color: #1d4ed8;
-    text-transform: uppercase; letter-spacing: 1.1px;
-    margin: 1rem 0 0.4rem; padding-left: 2px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin: 1.1rem 0 0.4rem;
+    padding-left: 2px;
 }
 
-/* ── 프로필 카드 ── */
+/* 프로필 카드 */
 .profile-card {
-    background: #bfdbfe;            /* blue-200 — 더 진하게 */
+    background: #bfdbfe;
     border: 1px solid #93c5fd;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    font-size: 0.85rem;
+    border-radius: 10px;
+    padding: 0.8rem 0.95rem;
     color: #1e3a5f;
-    line-height: 1.65;
+    line-height: 1.6;
+    font-size: 0.84rem;
 }
-.profile-empty { color: #64748b; font-size: 0.82rem; }
-.profile-name  { font-weight: 700; color: #1e40af; font-size: 0.91rem; }
-.profile-sub   { color: #2563eb; font-size: 0.78rem; margin-top: 0.06rem; }
+.profile-empty { color: #64748b; font-size: 0.81rem; }
+.profile-name  { font-weight: 700; color: #1e40af; font-size: 0.9rem; }
+.profile-sub   { color: #2563eb; font-size: 0.77rem; margin-top: 0.05rem; }
 .profile-contact {
-    font-size: 0.73rem; color: #1d4ed8;
-    margin-top: 0.4rem; padding-top: 0.35rem;
+    font-size: 0.72rem; color: #1d4ed8;
+    margin-top: 0.38rem; padding-top: 0.33rem;
     border-top: 1px solid #93c5fd;
 }
 
-/* ── 수정/저장 소형 버튼 ── */
+/* 사이드바 입력 */
+[data-testid="stSidebar"] [data-testid="stTextInput"] input {
+    background: #f8fafc !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+    color: #1e293b !important;
+    font-family: 'Noto Sans KR', sans-serif !important;
+    padding: 0.38rem 0.65rem !important;
+}
+[data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.09) !important;
+    background: #fff !important;
+}
+[data-testid="stSidebar"] label {
+    font-size: 0.76rem !important;
+    color: #64748b !important;
+    font-family: 'Noto Sans KR', sans-serif !important;
+}
+
+/* ── 사이드바 버튼 기본 ── */
 [data-testid="stSidebar"] [data-testid="stButton"] > button {
     font-family: 'Noto Sans KR', sans-serif !important;
-    transition: all 0.15s ease !important;
-}
-
-/* 수정 버튼 */
-button[data-testid="btn_edit"] > div,
-[data-testid="stSidebar"] [data-testid="stButton"]:has(> button[kind="secondary"][data-testid="btn_edit"]) > button {
-    padding: 0.28rem 0.55rem !important;
-}
-
-/* 사이드바 모든 일반 버튼 */
-[data-testid="stSidebar"] [data-testid="stButton"] > button:not([kind="primary"]) {
     background: #fff !important;
     color: #334155 !important;
-    border: 1px solid #dbeafe !important;
-    border-radius: 9px !important;
-    font-size: 0.82rem !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    font-size: 0.81rem !important;
     font-weight: 500 !important;
     text-align: left !important;
-    padding: 0.5rem 0.85rem !important;
+    padding: 0.48rem 0.8rem !important;
+    transition: background 0.13s, border-color 0.13s, color 0.13s !important;
     box-shadow: none !important;
     margin-bottom: 3px !important;
 }
-[data-testid="stSidebar"] [data-testid="stButton"] > button:not([kind="primary"]):hover {
+[data-testid="stSidebar"] [data-testid="stButton"] > button:hover {
     background: #eff6ff !important;
     border-color: #93c5fd !important;
     color: #1d4ed8 !important;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.10) !important;
-    transform: translateX(2px) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 /* 저장(primary) */
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {
     background: #2563eb !important;
     color: #fff !important;
-    border: 1px solid #2563eb !important;
-    border-radius: 9px !important;
-    font-size: 0.82rem !important;
+    border-color: #2563eb !important;
     font-weight: 600 !important;
     text-align: center !important;
-    padding: 0.5rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"]:hover {
     background: #1d4ed8 !important;
     border-color: #1d4ed8 !important;
-    transform: none !important;
-    box-shadow: 0 2px 10px rgba(37,99,235,0.22) !important;
 }
 
-/* 대화 초기화 (secondary → 중립 회색) */
+/* 수정 버튼 – 작게 */
+[data-testid="stSidebar"] [data-key="btn_edit"] > button,
+[data-testid="stSidebar"] [data-key="btn_save"] > button {
+    text-align: center !important;
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.76rem !important;
+}
+
+/* 대화 초기화 – 중립 회색 */
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="secondary"] {
     background: #f8fafc !important;
     color: #64748b !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 9px !important;
+    border-color: #e2e8f0 !important;
     text-align: center !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="secondary"]:hover {
     background: #f1f5f9 !important;
-    border-color: #cbd5e1 !important;
     color: #475569 !important;
-    transform: none !important;
+    border-color: #cbd5e1 !important;
 }
 
-/* ── 사이드바 입력 필드 ── */
-[data-testid="stSidebar"] [data-testid="stTextInput"] input {
-    background: #fff !important;
-    border: 1px solid #bfdbfe !important;
-    border-radius: 8px !important;
-    font-size: 0.83rem !important;
-    color: #1e3a5f !important;
-    font-family: 'Noto Sans KR', sans-serif !important;
-}
-[data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.10) !important;
-}
-[data-testid="stSidebar"] label {
-    font-size: 0.77rem !important; color: #475569 !important;
-    font-family: 'Noto Sans KR', sans-serif !important;
+/* ═══════════════════════════════════════════
+   CHAT  –  아이콘 제거 + 말풍선 정렬
+   ═══════════════════════════════════════════ */
+
+/* 1) 아이콘(아바타) 완전 제거 */
+[data-testid="stChatMessageAvatar"] {
+    display: none !important;
 }
 
-/* ════ 채팅 메시지 공통 ════ */
+/* 2) 메시지 래퍼 – 투명 컨테이너 */
 [data-testid="stChatMessage"] {
-    border-radius: 16px !important;
-    padding: 1rem 1.25rem !important;
-    margin-bottom: 0.6rem !important;
-    box-shadow: 0 1px 6px rgba(37,99,235,0.07) !important;
-    transition: box-shadow 0.18s !important;
-}
-[data-testid="stChatMessage"]:hover {
-    box-shadow: 0 3px 14px rgba(37,99,235,0.11) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 0.55rem !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
 }
 
-/* 어시스턴트 – 파란색 solid (왼쪽 정렬 기본) */
+/* 3) 공통 말풍선 스타일 */
+[data-testid="stChatMessageContent"] {
+    border-radius: 14px !important;
+    padding: 0.82rem 1.1rem !important;
+    line-height: 1.72 !important;
+    flex: 0 0 auto !important;   /* ← 핵심: 너비 자동으로 줄어듦 */
+    width: auto !important;
+    max-width: 76% !important;
+    min-width: 80px !important;
+    word-break: break-word !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+}
+
+/* 4) 어시스턴트 – 왼쪽, 파랑 */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+    justify-content: flex-start !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"])
+  [data-testid="stChatMessageContent"] {
     background: #dbeafe !important;
     border: 1px solid #bfdbfe !important;
-    margin-right: 8% !important;
+    border-radius: 4px 14px 14px 14px !important;
 }
 
-/* 사용자 – 흰색, 오른쪽 정렬 */
+/* 5) 사용자 – 오른쪽, 흰색 */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+    justify-content: flex-end !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"])
+  [data-testid="stChatMessageContent"] {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    flex-direction: row-reverse !important;
-    margin-left: 8% !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 14px 4px 14px 14px !important;
 }
 
-/* ════ 채팅 입력창 ════ */
+/* ═══════════════════════════════════════════
+   CHAT INPUT
+   ═══════════════════════════════════════════ */
 [data-testid="stChatInput"] {
     background: #fff !important;
-    border-radius: 14px !important;
-    box-shadow: 0 3px 14px rgba(37,99,235,0.09) !important;
+    border-radius: 12px !important;
     border: 1.5px solid #bfdbfe !important;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.08) !important;
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important;
     border: none !important;
-    font-size: 0.91rem !important;
+    font-size: 0.9rem !important;
+    color: #1e293b !important;
 }
 
-hr { border-color: #dbeafe !important; }
+/* ═══════════════════════════════════════════
+   MISC
+   ═══════════════════════════════════════════ */
+hr { border-color: #e2e8f0 !important; }
 
-/* ════ 모바일 반응형 ════ */
+/* ═══════════════════════════════════════════
+   모바일 반응형
+   ═══════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .main .block-container { max-width: 100% !important; padding: 0.6rem 0.3rem 1.8rem !important; }
-    .kdn-header { padding: 1rem 1.1rem; border-radius: 13px; margin-bottom: 0.8rem; }
-    .kdn-header h1 { font-size: 1.1rem; }
-    .kdn-header p  { font-size: 0.76rem; }
-    [data-testid="stChatMessage"] {
-        padding: 0.7rem 0.9rem !important;
-        border-radius: 12px !important;
-        margin-bottom: 0.45rem !important;
+    .main .block-container {
+        max-width: 100% !important;
+        padding: 0.6rem 0.3rem 2rem !important;
     }
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) { margin-right: 4% !important; }
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"])      { margin-left: 4% !important; }
+    .kdn-header { padding: 0.95rem 1.1rem; border-radius: 12px; margin-bottom: 0.8rem; }
+    .kdn-header h1 { font-size: 1.08rem; }
+    [data-testid="stChatMessageContent"] {
+        max-width: 88% !important;
+        padding: 0.7rem 0.9rem !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 메일 유형 ─────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  DATA
+# ─────────────────────────────────────────────────────────────
 MAIL_TYPES = [
     ("📊", "시스템 현황 보고",  "시스템 현황 보고 메일을 작성하고 싶습니다."),
     ("🚨", "장애 보고",        "장애 보고 메일을 작성하고 싶습니다."),
@@ -234,14 +286,18 @@ MAIL_TYPES = [
     ("📨", "자료 회신 요청",   "자료 회신 요청 메일을 작성하고 싶습니다."),
 ]
 
-# ── 시스템 프롬프트 ───────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  SYSTEM PROMPT
+# ─────────────────────────────────────────────────────────────
 def build_system_prompt(sender: dict) -> str:
-    mapping = [("name","이름"),("dept","부서"),("title","직급"),("phone","연락처"),("email","이메일")]
+    mapping = [("name","이름"),("dept","부서"),("title","직급"),
+               ("phone","연락처"),("email","이메일")]
     has_any = any(sender.get(k,"").strip() for k, _ in mapping)
 
     if has_any:
         lines = "\n".join(
-            f"  - {lbl}: {sender.get(k,'').strip() or '[미입력]'}" for k, lbl in mapping
+            f"  - {lbl}: {sender.get(k,'').strip() or '[미입력]'}"
+            for k, lbl in mapping
         )
         sender_block = f"**발신자 정보 (메일에 그대로 사용)**\n{lines}"
     else:
@@ -265,43 +321,14 @@ def build_system_prompt(sender: dict) -> str:
 
 **메일 유형별 필요 정보**
 
-[시스템 현황 보고]
-Q1. 어떤 시스템의 현황을 보고하시나요? (예: EMS, SCADA, AMI)
-Q2. 보고 기간이 언제인가요?
-Q3. 주요 운영 현황을 알려주세요. (가동률, 상태 등)
-Q4. 특이사항이나 이슈가 있나요? (없으면 "없음")
+[시스템 현황 보고] Q1.보고 시스템명 Q2.보고 기간 Q3.주요 운영 현황 Q4.특이사항(없으면 "없음")
+[장애 보고] Q1.장애 시스템명 Q2.장애 발생 일시 Q3.증상·영향 범위 Q4.현재 조치 상황
+[회의 요청] Q1.회의 목적·안건 Q2.희망 일시 Q3.참석 대상 Q4.장소·방식(온/오프라인)
+[점검 결과] Q1.점검 시스템명 Q2.점검 일시 Q3.점검 결과 Q4.후속 조치(없으면 "없음")
+[작업 협조 요청] Q1.작업 내용 Q2.관련 시스템명 Q3.협조 일정 Q4.협조 부서·담당자
+[자료 회신 요청] Q1.요청 자료명·내용 Q2.필요 사유 Q3.회신 기한 Q4.회신 방법
 
-[장애 보고]
-Q1. 장애가 발생한 시스템명은 무엇인가요?
-Q2. 장애 발생 일시는 언제인가요?
-Q3. 장애 증상과 영향 범위를 설명해 주세요.
-Q4. 현재 조치 상황은 어떻게 되나요?
-
-[회의 요청]
-Q1. 회의 목적 또는 안건은 무엇인가요?
-Q2. 희망하는 회의 일시가 있으신가요?
-Q3. 참석 대상은 누구인가요? (부서 또는 직책)
-Q4. 회의 장소 또는 방식은 어떻게 되나요? (온라인/오프라인)
-
-[점검 결과]
-Q1. 점검한 시스템명은 무엇인가요?
-Q2. 점검 일시는 언제인가요?
-Q3. 점검 결과를 간단히 설명해 주세요.
-Q4. 후속 조치가 필요한 사항이 있나요? (없으면 "없음")
-
-[작업 협조 요청]
-Q1. 협조가 필요한 작업 내용은 무엇인가요?
-Q2. 관련 시스템명은 무엇인가요?
-Q3. 협조 요청 일정은 언제인가요?
-Q4. 협조를 요청할 부서 또는 담당자는 누구인가요?
-
-[자료 회신 요청]
-Q1. 요청하는 자료명 또는 내용은 무엇인가요?
-Q2. 자료가 필요한 사유는 무엇인가요?
-Q3. 회신 기한은 언제인가요?
-Q4. 회신 방법은 어떻게 해주시면 되나요?
-
-**완성 메일 형식 (반드시 이 형식을 따르세요)**
+**완성 메일 형식 (반드시 준수)**
 
 제목: [내용에 맞는 구체적인 제목]
 
@@ -311,7 +338,7 @@ Q4. 회신 방법은 어떻게 해주시면 되나요?
 
 안녕하십니까, {dept} {name} {title}입니다.
 
-[본문 — 구체적이고 공식적인 한국어 문체]
+[본문 — 공식적이고 명확한 한국어 문체]
 
 감사합니다.
 {name} 올림
@@ -322,12 +349,14 @@ Q4. 회신 방법은 어떻게 해주시면 되나요?
 ---
 
 규칙:
-- 인사말은 반드시 "안녕하십니까, {dept} {name} {title}입니다."
-- 마무리는 반드시 "감사합니다.\\n{name} 올림"
-- 수신자 정보는 [수신자명/부서] 형태 유지
-- 메일 완성 후 [ ] 항목 교체 안내"""
+- 인사말 형식 고정: "안녕하십니까, {dept} {name} {title}입니다."
+- 마무리 형식 고정: "감사합니다.\\n{name} 올림"
+- 수신자는 [수신자명/부서] 유지
+- 완성 후 [ ] 항목 교체 안내"""
 
-# ── API ───────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  API
+# ─────────────────────────────────────────────────────────────
 def get_client():
     api_key = None
     try:
@@ -347,7 +376,9 @@ def stream_response(client, messages):
         if delta:
             yield delta
 
-# ── 세션 상태 ─────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  SESSION STATE
+# ─────────────────────────────────────────────────────────────
 for k, val in {
     "messages": [], "trigger": None,
     "sender": {"name":"","dept":"","title":"","phone":"","email":""},
@@ -356,7 +387,9 @@ for k, val in {
     if k not in st.session_state:
         st.session_state[k] = val
 
-# ── 헤더 ─────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  HEADER
+# ─────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="kdn-header">
   <h1>✉️ KDN 업무 메일 도우미</h1>
@@ -365,7 +398,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── 사이드바 ──────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  SIDEBAR
+# ─────────────────────────────────────────────────────────────
 with st.sidebar:
     s        = st.session_state.sender
     has_info = any(v.strip() for v in s.values())
@@ -375,7 +410,7 @@ with st.sidebar:
     with lbl_col:
         st.markdown('<div class="sb-label">👤 내 정보</div>', unsafe_allow_html=True)
     with btn_col:
-        st.markdown('<div style="margin-top:0.52rem"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top:0.5rem"></div>', unsafe_allow_html=True)
         if st.session_state.editing_profile:
             if st.button("저장", key="btn_save", type="primary", use_container_width=True):
                 st.session_state.editing_profile = False
@@ -429,7 +464,9 @@ with st.sidebar:
     st.divider()
     st.caption("AI 답변은 초안 참고용입니다.\n실제 발송 전 내용을 반드시 검토하세요.")
 
-# ── 메인 영역 ─────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+#  MAIN
+# ─────────────────────────────────────────────────────────────
 client = get_client()
 if client is None:
     st.error(
@@ -439,7 +476,7 @@ if client is None:
     )
     st.stop()
 
-# 첫 화면 – 어시스턴트 버블로 표시 (시스템 답변과 동일한 스타일)
+# 첫 화면 웰컴 – 어시스턴트 버블
 if not st.session_state.messages:
     with st.chat_message("assistant"):
         st.markdown(
