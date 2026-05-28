@@ -369,19 +369,6 @@ def bubble(role: str, content_html: str, streaming: bool = False) -> str:
             f'{content_html}{cursor}</div></div>'
         )
 
-
-def split_mail(content: str) -> tuple:
-    """메일 초안을 대화 부분과 메일 본문으로 분리.
-    Returns (chat_part, mail_part) — mail_part는 '제목:' 이후 전체.
-    """
-    idx = content.find('\n제목:')
-    if idx != -1:
-        return content[:idx].strip(), content[idx + 1:].strip()
-    if content.startswith('제목:'):
-        return "", content.strip()
-    return content, ""
-
-
 def render_history():
     for msg in st.session_state.messages:
         if msg["role"] == "system":
