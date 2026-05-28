@@ -101,7 +101,7 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
     height:         auto        !important;
     width:          auto        !important;
     color:          #94a3b8     !important;
-    font-size:      .60rem      !important;
+    font-size:      .50rem      !important;
     font-weight:    700         !important;
     letter-spacing: 1.2px       !important;
     text-transform: uppercase   !important;
@@ -118,18 +118,19 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
     color:          #1d4ed8     !important;
     text-decoration:none        !important;
 }
-/* 저장 버튼은 파란색 */
+/* 저장 버튼: 수정 버튼과 동일한 스타일 */
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primary"],
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primaryFormSubmit"] {
-    color: #2563eb !important;
+    color: #94a3b8 !important;
     background: transparent !important;
     border: none !important;
 }
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primary"]:hover {
     color: #1d4ed8 !important;
+    background: transparent !important;
 }
 
 /* ── 프로필 카드 (로얄블루 그라데이션) ── */
@@ -369,14 +370,33 @@ def bubble(role: str, content_html: str, streaming: bool = False) -> str:
         )
 
 
+def split_mail(content: str) -> tuple:
+    """메일 초안을 대화 부분과 메일 본문으로 분리.
+    Returns (chat_part, mail_part) — mail_part는 '제목:' 이후 전체.
+    """
+    idx = content.find('\n제목:')
+    if idx != -1:
+        return content[:idx].strip(), content[idx + 1:].strip()
+    if content.startswith('제목:'):
+        return "", content.strip()
+    return content, ""
+
+
 def render_history():
     for msg in st.session_state.messages:
         if msg["role"] == "system":
             continue
-        st.markdown(bubble(msg["role"], md_to_html(msg["content"])), unsafe_allow_html=True)
         if msg["role"] == "assistant" and "제목:" in msg["content"]:
-            with st.expander("📋 메일 복사하기"):
-                st.code(msg["content"], language="text")
+            chat_part, mail_part = split_mail(msg["content"])
+            # 대화 부분만 버블로 표시
+            if chat_part:
+                st.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+            # 메일 초안은 복사 블록에서만
+            if mail_part:
+                with st.expander("📋 메일 복사하기"):
+                    st.code(mail_part, language="text")
+        else:
+            st.markdown(bubble(msg["role"], md_to_html(msg["content"])), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────
 #  메일 기록 저장 (로컬 + Supabase)
@@ -397,7 +417,7 @@ def save_to_history(content: str):
 MAIL_TYPES = [
     ("📊", "시스템 현황 보고",  "시스템 현황 보고 메일을 작성하고 싶습니다."),
     ("🚨", "장애 보고",        "장애 보고 메일을 작성하고 싶습니다."),
-    ("📅", "회의 요청",        "회의 요청 메일을 작성하고 싶습니다."),
+    ("📅", "회의 요청",        "회의 참석 요청 메일을 작성하고 싶습니다."),
     ("🔍", "점검 결과",        "점검 결과 보고 메일을 작성하고 싶습니다."),
     ("🤝", "작업 협조 요청",   "작업 협조 요청 메일을 작성하고 싶습니다."),
     ("📨", "자료 회신 요청",   "자료 회신 요청 메일을 작성하고 싶습니다."),
@@ -659,8 +679,15 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": resp})
         if "제목:" in resp:
             save_to_history(resp)
+            chat_part, mail_part = split_mail(resp)
+            # 버블을 대화 부분으로 교체 (메일 초안 제거)
+            if chat_part:
+                ph.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+            else:
+                ph.empty()
+            # 메일 초안은 복사 블록에서만
             with st.expander("📋 메일 복사하기", expanded=True):
-                st.code(resp, language="text")
+                st.code(mail_part, language="text")
     except AuthenticationError:
         ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
     except RateLimitError:
