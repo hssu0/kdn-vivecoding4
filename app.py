@@ -655,17 +655,10 @@ if user_input:
     try:
         resp = stream_to_bubble(client, st.session_state.messages, ph)
         st.session_state.messages.append({"role": "assistant", "content": resp})
-        if "제목:" in resp:
-            save_to_history(resp)
-            chat_part, mail_part = split_mail(resp)
-            # 버블을 대화 부분으로 교체 (메일 초안 제거)
-            if chat_part:
-                ph.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
-            else:
-                ph.empty()
-            # 메일 초안은 복사 블록에서만
-            with st.expander("📋 메일 복사하기", expanded=True):
-                st.code(mail_part, language="text")
+        
+        save_to_history(resp)
+        ph.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+
     except AuthenticationError:
         ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
     except RateLimitError:
