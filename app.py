@@ -657,7 +657,7 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": resp})
         
         save_to_history(resp)
-        ph.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+        ph.markdown(bubble("assistant", md_to_html(resp)), unsafe_allow_html=True)
 
     except AuthenticationError:
         ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
