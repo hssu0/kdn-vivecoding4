@@ -242,6 +242,14 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 hr { border-color:#e2e8f0 !important; }
 
+/* ── 메일 기록 본문 ── */
+.history-body {
+    background:#f0f5ff; border:1px solid #bfdbfe; border-radius:4px;
+    padding:.55rem .75rem; font-size:.72rem; line-height:1.65; color:#334155;
+    font-family:'Noto Sans KR', monospace !important;
+    white-space:pre-wrap; word-break:break-word; margin:.2rem 0 0; overflow-x:auto;
+}
+
 @media(max-width:768px){
     .main .block-container{max-width:100% !important;padding:.6rem .3rem 2rem !important;}
     .kdn-header{padding:.9rem 1rem;border-radius:12px;margin-bottom:.8rem;}
@@ -369,10 +377,28 @@ def bubble(role: str, content_html: str, streaming: bool = False) -> str:
             f'{content_html}{cursor}</div></div>'
         )
 
+def split_mail(content: str) -> tuple:
+    """Split response at \\n제목: → (chat_part, mail_part)."""
+    idx = content.find('\n제목:')
+    if idx != -1:
+        return content[:idx].strip(), content[idx + 1:].strip()
+    if content.startswith('제목:'):
+        return "", content.strip()
+    return content, ""
+
+
 def render_history():
     for msg in st.session_state.messages:
         if msg["role"] == "system":
             continue
+        if msg["role"] == "assistant":
+            chat_part, mail_part = split_mail(msg["content"])
+            if chat_part:
+                st.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+            elif mail_part:
+                st.markdown(bubble("assistant", md_to_html(
+                    "✉️ 메일 초안이 작성되었습니다. 왼쪽 사이드바 **메일 기록**에서 확인하세요."
+                )), unsafe_allow_html=True)
         else:
             st.markdown(bubble(msg["role"], md_to_html(msg["content"])), unsafe_allow_html=True)
 
@@ -380,14 +406,16 @@ def render_history():
 #  메일 기록 저장 (로컬 + Supabase)
 # ─────────────────────────────────────────────────────────────
 def save_to_history(content: str):
+    _, mail_part = split_mail(content)
+    mail_content = mail_part if mail_part else content
     m = re.search(r'제목:\s*(.+)', content)
     subject = m.group(1).strip() if m else "메일 초안"
     st.session_state.mail_history.insert(0, {
         "subject": subject,
-        "content": content,
+        "content": mail_content,
         "time":    datetime.now().strftime("%m/%d %H:%M"),
     })
-    sb_save_mail(subject, content)
+    sb_save_mail(subject, mail_content)
 
 # ─────────────────────────────────────────────────────────────
 #  데이터
@@ -488,9 +516,20 @@ def stream_to_bubble(client, messages, placeholder):
             chunks.append(delta)
             partial = _html.escape("".join(chunks)).replace('\n', '<br>')
             placeholder.markdown(bubble("assistant", partial, streaming=True), unsafe_allow_html=True)
-    resp = "".join(chunks)
-    placeholder.markdown(bubble("assistant", md_to_html(resp)), unsafe_allow_html=True)
-    return resp
+    return "".join(chunks)
+
+
+def finalize_bubble(placeholder, resp: str):
+    """Render final bubble — chat part only; mail draft goes to history."""
+    chat_part, mail_part = split_mail(resp)
+    if chat_part:
+        placeholder.markdown(bubble("assistant", md_to_html(chat_part)), unsafe_allow_html=True)
+    elif mail_part:
+        placeholder.markdown(bubble("assistant", md_to_html(
+            "✉️ 메일 초안이 작성되었습니다. 왼쪽 사이드바 **메일 기록**에서 확인하세요."
+        )), unsafe_allow_html=True)
+    else:
+        placeholder.markdown(bubble("assistant", md_to_html(resp)), unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────
 #  세션 상태
@@ -589,7 +628,10 @@ with st.sidebar:
             subj = item["subject"]
             lbl  = (subj[:13] + "…") if len(subj) > 13 else subj
             with st.expander(f"{item['time']}  {lbl}"):
-                st.code(item["content"], language="text")
+                st.markdown(
+                    f'<pre class="history-body">{_html.escape(item["content"])}</pre>',
+                    unsafe_allow_html=True,
+                )
     else:
         st.markdown('<div class="sb-empty">아직 작성된 메일이 없습니다.</div>',
                     unsafe_allow_html=True)
@@ -614,7 +656,7 @@ if not st.session_state.messages:
         "👋 안녕하세요! **KDN 업무 메일 도우미**입니다.\n\n"
         "왼쪽 사이드바에서 **내 정보**를 먼저 입력하시면 메일 서명이 자동으로 완성됩니다.  \n"
         "이후 **메일 유형**을 선택하면 필요한 정보를 하나씩 여쭤본 뒤 초안을 작성해 드립니다.\n\n"
-        "💡 *작성된 메일 초안은 말풍선 아래 📋 버튼으로 바로 복사하실 수 있습니다.*"
+        "💡 *작성된 메일 초안은 왼쪽 사이드바 **메일 기록**에서 제목별로 확인하실 수 있습니다.*"
     )
     st.markdown(bubble("assistant", md_to_html(welcome)), unsafe_allow_html=True)
 
@@ -630,6 +672,7 @@ if st.session_state.trigger:
     try:
         resp = stream_to_bubble(client, st.session_state.messages, ph)
         st.session_state.messages.append({"role": "assistant", "content": resp})
+        finalize_bubble(ph, resp)
         if "제목:" in resp:
             save_to_history(resp)
     except AuthenticationError:
@@ -655,10 +698,9 @@ if user_input:
     try:
         resp = stream_to_bubble(client, st.session_state.messages, ph)
         st.session_state.messages.append({"role": "assistant", "content": resp})
-        
-        save_to_history(resp)
-        ph.markdown(bubble("assistant", md_to_html(resp)), unsafe_allow_html=True)
-
+        finalize_bubble(ph, resp)
+        if "제목:" in resp:
+            save_to_history(resp)
     except AuthenticationError:
         ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
     except RateLimitError:
