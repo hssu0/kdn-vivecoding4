@@ -6,11 +6,11 @@ from datetime import datetime
 st.set_page_config(page_title="KDN 업무 메일 도우미", page_icon="✉️", layout="wide")
 
 # ─────────────────────────────────────────────────────────────
-#  Supabase 테이블 스키마 (초기 설정 시 SQL 편집기에서 실행)
+#  Supabase 테이블 스키마 (프로젝트 SQL 편집기에서 1회 실행)
 # ─────────────────────────────────────────────────────────────
 # CREATE TABLE IF NOT EXISTS profiles (
 #     email TEXT PRIMARY KEY,
-#     name  TEXT DEFAULT '', dept  TEXT DEFAULT '',
+#     name TEXT DEFAULT '', dept TEXT DEFAULT '',
 #     title TEXT DEFAULT '', phone TEXT DEFAULT '',
 #     updated_at TIMESTAMPTZ DEFAULT NOW()
 # );
@@ -20,13 +20,13 @@ st.set_page_config(page_title="KDN 업무 메일 도우미", page_icon="✉️",
 #     subject TEXT DEFAULT '', content TEXT DEFAULT '',
 #     created_at TIMESTAMPTZ DEFAULT NOW()
 # );
-# ALTER TABLE profiles    ENABLE ROW LEVEL SECURITY;
+# ALTER TABLE profiles     ENABLE ROW LEVEL SECURITY;
 # ALTER TABLE mail_history ENABLE ROW LEVEL SECURITY;
 # CREATE POLICY "anon_all" ON profiles     FOR ALL TO anon USING (true) WITH CHECK (true);
 # CREATE POLICY "anon_all" ON mail_history FOR ALL TO anon USING (true) WITH CHECK (true);
 
 # ─────────────────────────────────────────────────────────────
-#  CSS  v5
+#  CSS  v6
 # ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -74,9 +74,10 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
     font-size:.67rem; font-weight:700; color:#64748b;
     text-transform:uppercase; letter-spacing:1.2px;
     margin:1rem 0 .38rem; padding-left:2px;
+    display:inline-block;
 }
 
-/* ── 프로필 헤더 행 — 수정/저장 버튼 인라인 정렬 ── */
+/* ── 프로필 헤더 행 ── */
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
     align-items: center !important;
     margin: 0.85rem 0 0.42rem !important;
@@ -88,29 +89,46 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stVerticalBlock"] { gap: 0 !important; }
 
-/* 수정/저장 버튼 — '내 정보' 텍스트와 동일 크기(0.67rem) */
+/* ── 수정/저장 버튼 → st.markdown 텍스트 수준 크기 ── */
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button {
-    font-size: .67rem !important;
-    font-weight: 700 !important;
-    padding: .13rem .38rem !important;
-    min-height: 0 !important;
-    line-height: 1.4 !important;
-    border-radius: 5px !important;
-    letter-spacing: .4px !important;
-    margin-bottom: 0 !important;
-    text-align: center !important;
+    background:    transparent !important;
+    border:        none        !important;
+    box-shadow:    none        !important;
+    outline:       none        !important;
+    padding:       0           !important;
+    margin:        0           !important;
+    min-height:    0           !important;
+    height:        auto        !important;
+    width:         auto        !important;
+    color:         #64748b     !important;
+    font-size:     .67rem      !important;
+    font-weight:   700         !important;
+    letter-spacing:1.2px       !important;
+    text-transform:uppercase   !important;
+    line-height:   1.2         !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+    cursor:        pointer      !important;
+    font-family:   'Noto Sans KR', sans-serif !important;
 }
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
+    [data-testid="stButton"] > button:hover {
+    background: transparent !important;
+    border:     none        !important;
+    box-shadow: none        !important;
+    color:      #1d4ed8     !important;
+}
+/* 저장 버튼은 파란색 텍스트 */
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primary"],
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primaryFormSubmit"] {
-    background: #2563eb !important; color: #fff !important;
-    border-color: #2563eb !important;
+    color: #1d4ed8 !important;
 }
 [data-testid="stSidebar"] [data-testid="stHorizontalBlock"]
     [data-testid="stButton"] > button[kind="primary"]:hover {
-    background: #1d4ed8 !important; border-color: #1d4ed8 !important;
+    color: #1e40af !important;
 }
 
 /* ── 프로필 카드 (로얄블루 그라데이션) ── */
@@ -174,14 +192,7 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
     background:#f1f5f9 !important; color:#475569 !important;
 }
 
-/* ── Supabase 연동 버튼 (☁) ── */
-[data-testid="stSidebar"] [data-key="btn_load"] > button,
-[data-testid="stSidebar"] [data-key="btn_db_save"] > button {
-    text-align: center !important;
-    font-size: .78rem !important;
-}
-
-/* ── Expander (메인 & 사이드바 공통) ── */
+/* ── Expander 공통 ── */
 [data-testid="stExpander"] {
     border:1px solid #bfdbfe !important; border-radius:8px !important;
     margin:.15rem 0 .45rem !important; overflow:hidden !important;
@@ -196,7 +207,7 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
 [data-testid="stExpander"] details > summary:hover,
 [data-testid="stExpander"] details[open] > summary { background:#dbeafe !important; }
 
-/* 사이드바 Expander 세부 */
+/* 사이드바 Expander */
 [data-testid="stSidebar"] [data-testid="stExpander"] {
     margin:.1rem 0 .25rem !important;
 }
@@ -204,15 +215,18 @@ h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
     font-size:.74rem !important; padding:.3rem .6rem !important;
 }
 
-/* 기록 없음 텍스트 */
-.sb-empty {
-    font-size:.76rem; color:#94a3b8;
-    padding:.25rem .25rem .5rem; font-style:italic;
+/* 상태 안내 텍스트 */
+.sb-empty { font-size:.76rem; color:#94a3b8; padding:.25rem .25rem .5rem; font-style:italic; }
+.sb-hint  { font-size:.72rem; color:#94a3b8; line-height:1.55; padding:.2rem .2rem .4rem; }
+.sb-err   {
+    font-size:.72rem; color:#dc2626; line-height:1.55;
+    padding:.3rem .5rem; background:#fef2f2;
+    border:1px solid #fca5a5; border-radius:6px; margin:.2rem 0;
 }
-/* Supabase 미설정 안내 */
-.sb-hint {
-    font-size:.72rem; color:#94a3b8; line-height:1.5;
-    padding:.25rem .25rem .4rem;
+.sb-ok    {
+    font-size:.72rem; color:#16a34a; line-height:1.55;
+    padding:.3rem .5rem; background:#f0fdf4;
+    border:1px solid #86efac; border-radius:6px; margin:.2rem 0;
 }
 
 /* ── 채팅 입력창 ── */
@@ -238,25 +252,45 @@ hr { border-color:#e2e8f0 !important; }
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────
-#  Supabase 클라이언트
+#  Supabase — 세션 캐싱 (cache_resource 대신 session_state 사용)
+#  → 페이지 새로고침 시 재연결 시도, 실패 원인 저장
 # ─────────────────────────────────────────────────────────────
-@st.cache_resource(show_spinner=False)
 def _get_sb():
-    try:
-        from supabase import create_client
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
-    except Exception:
-        return None
+    if "sb_client" not in st.session_state:
+        client, error = None, None
+        try:
+            from supabase import create_client
+            url = st.secrets["SUPABASE_URL"]
+            # SUPABASE_KEY 또는 SUPABASE_ANON_KEY 모두 허용
+            key = None
+            for k in ("SUPABASE_KEY", "SUPABASE_ANON_KEY"):
+                try:
+                    key = st.secrets[k]
+                    break
+                except KeyError:
+                    pass
+            if not key:
+                raise KeyError("SUPABASE_KEY 또는 SUPABASE_ANON_KEY")
+            client = create_client(url, key)
+        except KeyError as e:
+            error = f"Secrets 누락: {e}"
+        except ImportError:
+            error = "supabase 패키지 미설치"
+        except Exception as e:
+            error = str(e)[:120]
+        st.session_state["sb_client"] = client
+        st.session_state["sb_error"]  = error
+    return st.session_state["sb_client"]
 
-def sb_save_profile(sender: dict) -> bool:
+
+def sb_save_profile(sender: dict) -> tuple:
+    """(success: bool, message: str)"""
     email = sender.get("email", "").strip()
     if not email:
-        return False
+        return False, "이메일이 없어 저장하지 않았습니다."
     sb = _get_sb()
     if not sb:
-        return False
+        return False, st.session_state.get("sb_error", "Supabase 미연결")
     try:
         sb.table("profiles").upsert({
             "email": email,
@@ -265,15 +299,19 @@ def sb_save_profile(sender: dict) -> bool:
             "title": sender.get("title", ""),
             "phone": sender.get("phone", ""),
         }).execute()
-        return True
-    except Exception:
-        return False
+        return True, "저장 완료"
+    except Exception as e:
+        msg = str(e)
+        if "relation" in msg or "does not exist" in msg:
+            return False, "테이블 없음 — SQL 스키마를 먼저 실행하세요."
+        return False, msg[:100]
 
-def sb_load_data(email: str):
-    """(success, message, profile_dict | None, history_list)"""
+
+def sb_load_data(email: str) -> tuple:
+    """(success, message, profile | None, history[])"""
     sb = _get_sb()
     if not sb:
-        return False, "Supabase가 설정되지 않았습니다.", None, []
+        return False, st.session_state.get("sb_error", "Supabase 미연결"), None, []
     email = email.strip()
     if not email:
         return False, "이메일을 입력하세요.", None, []
@@ -283,7 +321,7 @@ def sb_load_data(email: str):
             return False, "해당 이메일로 저장된 정보가 없습니다.", None, []
         profile = r.data[0]
     except Exception as e:
-        return False, f"오류: {e}", None, []
+        return False, f"프로필 조회 오류: {str(e)[:80]}", None, []
 
     history = []
     try:
@@ -304,12 +342,13 @@ def sb_load_data(email: str):
             history.append({
                 "subject": item.get("subject", "메일 초안"),
                 "content": item.get("content", ""),
-                "time": ts,
+                "time":    ts,
             })
     except Exception:
         pass
 
-    return True, f"프로필과 메일 기록 {len(history)}건을 불러왔습니다.", profile, history
+    return True, f"불러오기 완료 (메일 기록 {len(history)}건)", profile, history
+
 
 def sb_save_mail(subject: str, content: str):
     email = st.session_state.sender.get("email", "").strip()
@@ -321,8 +360,8 @@ def sb_save_mail(subject: str, content: str):
     try:
         sb.table("mail_history").insert({
             "user_email": email,
-            "subject": subject,
-            "content": content,
+            "subject":    subject,
+            "content":    content,
         }).execute()
     except Exception:
         pass
@@ -378,6 +417,7 @@ def bubble(role: str, content_html: str, streaming: bool = False) -> str:
             f'{content_html}{cursor}</div></div>'
         )
 
+
 def render_history():
     for msg in st.session_state.messages:
         if msg["role"] == "system":
@@ -388,7 +428,7 @@ def render_history():
                 st.code(msg["content"], language="text")
 
 # ─────────────────────────────────────────────────────────────
-#  메일 기록 저장 (로컬 + Supabase)
+#  메일 기록 저장 (로컬 + Supabase 동시)
 # ─────────────────────────────────────────────────────────────
 def save_to_history(content: str):
     m = re.search(r'제목:\s*(.+)', content)
@@ -396,7 +436,7 @@ def save_to_history(content: str):
     st.session_state.mail_history.insert(0, {
         "subject": subject,
         "content": content,
-        "time": datetime.now().strftime("%m/%d %H:%M"),
+        "time":    datetime.now().strftime("%m/%d %H:%M"),
     })
     sb_save_mail(subject, content)
 
@@ -429,7 +469,7 @@ def build_system_prompt(sender: dict) -> str:
         sender_block = "**발신자 정보**: 미입력 — 발신자 항목은 모두 [ ] 형태로 비워 두세요."
 
     def v(k, fb=""):
-        return sender.get(k,"").strip() or fb
+        return sender.get(k, "").strip() or fb
 
     n  = v("name","[이름]"); d  = v("dept","[부서]")
     tl = v("title","[직급]"); ph = v("phone","[연락처]"); em = v("email","[이메일]")
@@ -469,7 +509,7 @@ def build_system_prompt(sender: dict) -> str:
 {n} | {d} | {tl} | {ph} | {em}
 
 규칙:
-- 서명 한 줄은 마크다운 서식(굵게, 헤딩 등) 없이 일반 텍스트로 작성
+- 서명 한 줄은 마크다운 서식 없이 일반 텍스트로 작성
 - 인사말 고정: "안녕하십니까, {d} {n} {tl}입니다."
 - 마무리 고정: "감사합니다.\\n{n} 올림"
 - 완성 후 [ ] 항목 교체 안내"""
@@ -486,6 +526,7 @@ def get_client():
     if not api_key:
         return None
     return OpenAI(api_key=api_key)
+
 
 def stream_to_bubble(client, messages, placeholder):
     chunks = []
@@ -532,23 +573,26 @@ st.markdown("""
 with st.sidebar:
     s        = st.session_state.sender
     has_info = any(v.strip() for v in s.values())
-    sb_ready = _get_sb() is not None
+    sb       = _get_sb()
+    sb_error = st.session_state.get("sb_error")
 
-    # ── 내 정보 헤더 (레이블 + 수정/저장 버튼 같은 줄) ──
-    lbl_col, btn_col = st.columns([4, 1])
+    # ── 내 정보 헤더 (레이블 + 수정/저장 텍스트 링크) ──
+    lbl_col, btn_col = st.columns([5, 1])
     with lbl_col:
-        st.markdown('<div class="sb-label" style="margin:0">👤 내 정보</div>',
+        st.markdown('<span class="sb-label" style="margin:0">👤 내 정보</span>',
                     unsafe_allow_html=True)
     with btn_col:
         if st.session_state.editing_profile:
-            if st.button("저장", key="btn_save", type="primary", use_container_width=True):
-                saved = sb_save_profile(st.session_state.sender)
+            if st.button("저장", key="btn_save", type="primary"):
+                ok, msg = sb_save_profile(st.session_state.sender)
                 st.session_state.editing_profile = False
-                if saved:
+                if ok:
                     st.toast("☁ Supabase에 저장되었습니다.", icon="✅")
+                elif sb:
+                    st.toast(f"⚠️ {msg}", icon="❌")
                 st.rerun()
         else:
-            if st.button("수정", key="btn_edit", use_container_width=True):
+            if st.button("수정", key="btn_edit"):
                 st.session_state.editing_profile = True
                 st.rerun()
 
@@ -576,8 +620,8 @@ with st.sidebar:
         st.session_state.sender["phone"] = st.text_input("연락처", value=s["phone"], placeholder="010-0000-0000",  key="inp_phone")
         st.session_state.sender["email"] = st.text_input("이메일", value=s["email"], placeholder="hong@kdn.com",   key="inp_email")
 
-    # ── Supabase 불러오기 ──
-    if sb_ready:
+    # ── Supabase 상태 / 불러오기 ──
+    if sb:
         with st.expander("☁ 저장된 정보 불러오기"):
             load_em = st.text_input(
                 "이메일", placeholder="hong@kdn.com",
@@ -598,10 +642,16 @@ with st.sidebar:
                     st.rerun()
                 else:
                     st.warning(msg)
+    elif sb_error:
+        st.markdown(
+            f'<div class="sb-err">☁ 연결 실패<br><code style="font-size:.68rem">'
+            f'{_html.escape(sb_error)}</code></div>',
+            unsafe_allow_html=True
+        )
     else:
         st.markdown(
             '<div class="sb-hint">☁ Supabase 미연동<br>'
-            'SUPABASE_URL · SUPABASE_KEY를<br>Secrets에 추가하면 활성화됩니다.</div>',
+            'Secrets에 SUPABASE_URL,<br>SUPABASE_KEY 추가 시 활성화</div>',
             unsafe_allow_html=True
         )
 
@@ -627,8 +677,8 @@ with st.sidebar:
     if st.session_state.mail_history:
         for item in st.session_state.mail_history[:8]:
             subj = item["subject"]
-            label_text = (subj[:13] + "…") if len(subj) > 13 else subj
-            with st.expander(f"{item['time']}  {label_text}"):
+            lbl  = (subj[:13] + "…") if len(subj) > 13 else subj
+            with st.expander(f"{item['time']}  {lbl}"):
                 st.code(item["content"], language="text")
     else:
         st.markdown('<div class="sb-empty">아직 작성된 메일이 없습니다.</div>',
