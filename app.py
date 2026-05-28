@@ -2,22 +2,14 @@ import streamlit as st
 from openai import OpenAI, AuthenticationError, RateLimitError, APIConnectionError
 import os
 
-# ── 페이지 설정 ──────────────────────────────────────────────
-st.set_page_config(
-    page_title="KDN 업무 메일 도우미",
-    page_icon="✉️",
-    layout="wide",
-)
+st.set_page_config(page_title="KDN 업무 메일 도우미", page_icon="✉️", layout="wide")
 
 # ── CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
-/*
-  ★ * 선택자 대신 명시적 타겟만 지정
-    → Streamlit이 expander 아이콘에 쓰는 Material Symbols 폰트를 건드리지 않음
-*/
+/* 폰트 – * 제외(Material Icons 보호) */
 html, body, .stApp, .main,
 h1, h2, h3, h4, h5, h6, p, label,
 input, textarea, button,
@@ -27,151 +19,161 @@ input, textarea, button,
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 
-/* ═══ 전체 배경 그라데이션 ═══ */
+/* ══════════════════════════════════════
+   배경 – 파란 계열 그라데이션
+   ══════════════════════════════════════ */
 .stApp {
-    background: linear-gradient(145deg,
-        #e8eeff 0%,
-        #f0ebff 22%,
-        #fde8f5 45%,
-        #ddeeff 70%,
-        #d8f5ee 100%
+    background: linear-gradient(160deg,
+        #eff6ff 0%,
+        #dbeafe 35%,
+        #e0f2fe 65%,
+        #f0f9ff 100%
     ) fixed !important;
 }
 
-/* ═══ 메인 컨테이너 ═══ */
 .main .block-container {
     background: transparent !important;
-    padding-top: 1.5rem !important;
+    padding-top: 1.4rem !important;
     max-width: 860px !important;
 }
 
-/* ═══ 헤더 ═══ */
+/* ══════════════════════════════════════
+   헤더 – 파란 계열
+   ══════════════════════════════════════ */
 .kdn-header {
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 45%, #0ea5e9 100%);
-    color: white;
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #0ea5e9 100%);
+    color: #fff;
     padding: 1.4rem 2rem;
-    border-radius: 20px;
+    border-radius: 18px;
     margin-bottom: 1.2rem;
-    box-shadow: 0 8px 32px rgba(99,102,241,0.28);
+    box-shadow: 0 6px 28px rgba(37,99,235,0.28);
 }
-.kdn-header h1 {
-    margin: 0 0 0.2rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-}
-.kdn-header p { margin: 0; font-size: 0.87rem; opacity: 0.85; }
+.kdn-header h1 { margin: 0 0 0.2rem; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
+.kdn-header p  { margin: 0; font-size: 0.86rem; opacity: 0.88; }
 .kdn-pill {
     display: inline-block;
-    background: rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.18);
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 30px;
-    padding: 0.15rem 0.7rem;
-    font-size: 0.71rem;
-    font-weight: 600;
-    margin-top: 0.55rem;
-}
-
-/* ═══ 사이드바 ═══ */
-[data-testid="stSidebar"] {
-    background: rgba(255,255,255,0.80) !important;
-    backdrop-filter: blur(14px) !important;
-    border-right: 1px solid rgba(200,200,255,0.4) !important;
-}
-[data-testid="stSidebar"] > div:first-child { padding-top: 1.1rem; }
-
-/* 섹션 라벨 */
-.sb-label {
+    padding: 0.14rem 0.68rem;
     font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+/* ══════════════════════════════════════
+   사이드바
+   ══════════════════════════════════════ */
+[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.88) !important;
+    backdrop-filter: blur(14px) !important;
+    border-right: 1px solid #bfdbfe !important;
+}
+[data-testid="stSidebar"] > div:first-child { padding-top: 1rem; }
+
+.sb-label {
+    font-size: 0.69rem;
     font-weight: 700;
-    color: #6d28d9;
+    color: #1d4ed8;
     text-transform: uppercase;
     letter-spacing: 1.1px;
-    margin: 1.1rem 0 0.4rem;
+    margin: 1rem 0 0.35rem;
     padding-left: 2px;
 }
 
-/* ═══ 발신자 카드 (아바타 없음) ═══ */
-.sender-card {
-    background: linear-gradient(135deg, #ede9fe 0%, #dbeafe 100%);
-    border: 1.5px solid #a78bfa;
-    border-radius: 14px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.4rem;
-    overflow: hidden;
+/* ── 프로필 카드 ── */
+.profile-card {
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: #1e3a5f;
+    line-height: 1.65;
 }
-.saved-badge {
-    display: inline-block;
-    background: #dcfce7;
-    color: #16a34a;
-    border-radius: 20px;
-    padding: 0.08rem 0.5rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    float: right;
-    margin-top: 0.1rem;
+.profile-empty {
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-style: italic;
 }
-.sender-name {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: #3730a3;
-    margin-bottom: 0.12rem;
-}
-.sender-sub { font-size: 0.79rem; color: #5b21b6; }
-.sender-contact {
+.profile-name  { font-weight: 700; color: #1d4ed8; font-size: 0.92rem; }
+.profile-sub   { color: #2563eb; font-size: 0.79rem; margin-top: 0.08rem; }
+.profile-contact {
     font-size: 0.74rem;
-    color: #6d28d9;
-    margin-top: 0.45rem;
-    padding-top: 0.4rem;
-    border-top: 1px solid rgba(167,139,250,0.35);
-    opacity: 0.88;
+    color: #3b82f6;
+    margin-top: 0.4rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid #bfdbfe;
 }
 
-/* ═══ 사이드바 입력 필드 ═══ */
+/* ── 사이드바 입력 필드 ── */
 [data-testid="stSidebar"] [data-testid="stTextInput"] input {
-    background: rgba(255,255,255,0.92) !important;
-    border: 1.5px solid rgba(167,139,250,0.38) !important;
-    border-radius: 10px !important;
+    background: #fff !important;
+    border: 1.5px solid #bfdbfe !important;
+    border-radius: 9px !important;
     font-size: 0.83rem !important;
-    color: #1f2937 !important;
+    color: #1e3a5f !important;
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 [data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
-    border-color: #7c3aed !important;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.13) !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
 }
 [data-testid="stSidebar"] label {
-    font-size: 0.79rem !important;
-    color: #4b5563 !important;
+    font-size: 0.78rem !important;
+    color: #475569 !important;
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 
-/* ═══ 사이드바 버튼 ═══ */
+/* ── 사이드바 버튼 공통 ── */
 [data-testid="stSidebar"] [data-testid="stButton"] > button {
-    background: rgba(255,255,255,0.88) !important;
-    color: #374151 !important;
-    border: 1.5px solid rgba(167,139,250,0.30) !important;
-    border-radius: 12px !important;
+    background: #fff !important;
+    color: #1e3a5f !important;
+    border: 1.5px solid #bfdbfe !important;
+    border-radius: 10px !important;
     font-size: 0.82rem !important;
     font-weight: 500 !important;
     text-align: left !important;
-    padding: 0.52rem 0.85rem !important;
-    transition: all 0.16s ease !important;
-    box-shadow: 0 1px 6px rgba(109,40,217,0.06) !important;
+    padding: 0.5rem 0.85rem !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.06) !important;
     margin-bottom: 3px !important;
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button:hover {
-    background: linear-gradient(135deg, #ede9fe, #dbeafe) !important;
-    border-color: #a78bfa !important;
-    color: #5b21b6 !important;
-    box-shadow: 0 3px 12px rgba(109,40,217,0.14) !important;
-    transform: translateX(3px) !important;
+    background: #eff6ff !important;
+    border-color: #93c5fd !important;
+    color: #1d4ed8 !important;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.13) !important;
+    transform: translateX(2px) !important;
 }
+
+/* 수정/저장 소형 버튼 */
+[data-testid="stSidebar"] [data-testid="stButton"].profile-action > button {
+    text-align: center !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
+    transform: none !important;
+}
+
+/* 저장 버튼(primary) */
+[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"]:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    transform: none !important;
+}
+
+/* 대화 초기화 버튼 */
 [data-testid="stSidebar"] button[kind="secondary"] {
-    background: rgba(254,226,226,0.72) !important;
+    background: #fff0f0 !important;
     color: #dc2626 !important;
-    border-color: rgba(252,165,165,0.5) !important;
+    border-color: #fecaca !important;
 }
 [data-testid="stSidebar"] button[kind="secondary"]:hover {
     background: #fee2e2 !important;
@@ -179,36 +181,40 @@ input, textarea, button,
     transform: none !important;
 }
 
-/* ═══ 채팅 메시지 공통 ═══ */
+/* ══════════════════════════════════════
+   채팅 메시지
+   ══════════════════════════════════════ */
 [data-testid="stChatMessage"] {
-    border-radius: 18px !important;
-    padding: 1rem 1.3rem !important;
-    margin-bottom: 0.7rem !important;
-    box-shadow: 0 2px 14px rgba(80,80,180,0.07) !important;
-    transition: box-shadow 0.2s !important;
+    border-radius: 16px !important;
+    padding: 0.95rem 1.25rem !important;
+    margin-bottom: 0.65rem !important;
+    box-shadow: 0 1px 8px rgba(37,99,235,0.07) !important;
+    transition: box-shadow 0.18s !important;
 }
 [data-testid="stChatMessage"]:hover {
-    box-shadow: 0 4px 20px rgba(80,80,180,0.12) !important;
+    box-shadow: 0 3px 16px rgba(37,99,235,0.11) !important;
 }
 
-/* 사용자 메시지 – 흰색 */
+/* 사용자 – 흰색 */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-    background: rgba(255,255,255,0.96) !important;
-    border: 1px solid rgba(209,213,219,0.55) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
-/* 어시스턴트 메시지 – 밝은 블루 */
+/* 어시스턴트 – solid 밝은 파란색 */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
-    background: rgba(214,234,255,0.82) !important;
-    border: 1px solid rgba(125,190,255,0.40) !important;
+    background: #dbeafe !important;
+    border: 1px solid #bfdbfe !important;
 }
 
-/* ═══ 채팅 입력창 ═══ */
+/* ══════════════════════════════════════
+   채팅 입력창
+   ══════════════════════════════════════ */
 [data-testid="stChatInput"] {
-    background: rgba(255,255,255,0.88) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 4px 20px rgba(99,102,241,0.11) !important;
-    border: 1.5px solid rgba(167,139,250,0.38) !important;
+    background: #fff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 3px 16px rgba(37,99,235,0.10) !important;
+    border: 1.5px solid #bfdbfe !important;
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important;
@@ -216,65 +222,51 @@ input, textarea, button,
     font-size: 0.91rem !important;
 }
 
-/* ═══ 웰컴 카드 ═══ */
+/* ══════════════════════════════════════
+   웰컴 카드
+   ══════════════════════════════════════ */
 .welcome-card {
-    background: rgba(255,255,255,0.78);
-    border: 1px solid rgba(167,139,250,0.22);
-    border-radius: 18px;
-    padding: 1.4rem 1.8rem;
-    color: #374151;
+    background: #fff;
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+    padding: 1.3rem 1.7rem;
+    color: #334155;
     font-size: 0.9rem;
     line-height: 1.8;
     margin-bottom: 1rem;
-    box-shadow: 0 4px 22px rgba(109,40,217,0.07);
+    box-shadow: 0 3px 18px rgba(37,99,235,0.07);
 }
-.welcome-card .w-title {
-    font-size: 1.02rem;
-    font-weight: 700;
-    color: #5b21b6;
-    margin-bottom: 0.45rem;
-}
+.welcome-card .w-title { font-size: 1rem; font-weight: 700; color: #1d4ed8; margin-bottom: 0.4rem; }
 .welcome-card .w-tip {
     display: inline-block;
-    background: linear-gradient(135deg, #ede9fe, #dbeafe);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     border-radius: 8px;
-    padding: 0.22rem 0.65rem;
-    font-size: 0.82rem;
-    color: #4f46e5;
-    margin-top: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.81rem;
+    color: #1d4ed8;
+    margin-top: 0.3rem;
 }
 
-hr { border-color: rgba(167,139,250,0.18) !important; }
+hr { border-color: #bfdbfe !important; }
 
-/* ════════════════════════════════════════
-   모바일 반응형 (≤ 768px)
-   ════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   모바일 반응형
+   ══════════════════════════════════════ */
 @media (max-width: 768px) {
     .main .block-container {
         max-width: 100% !important;
-        padding: 0.7rem 0.5rem 1.8rem !important;
+        padding: 0.7rem 0.4rem 1.8rem !important;
     }
-    .kdn-header {
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        margin-bottom: 0.85rem;
-    }
-    .kdn-header h1 { font-size: 1.15rem; }
-    .kdn-header p  { font-size: 0.78rem; }
-    .kdn-pill      { font-size: 0.65rem; padding: 0.12rem 0.55rem; }
-
+    .kdn-header { padding: 1rem 1.1rem; border-radius: 13px; margin-bottom: 0.8rem; }
+    .kdn-header h1 { font-size: 1.12rem; }
+    .kdn-header p  { font-size: 0.77rem; }
     [data-testid="stChatMessage"] {
-        padding: 0.75rem 0.95rem !important;
-        border-radius: 14px !important;
-        margin-bottom: 0.5rem !important;
+        padding: 0.7rem 0.9rem !important;
+        border-radius: 12px !important;
+        margin-bottom: 0.45rem !important;
     }
-    .welcome-card {
-        padding: 1rem 1.1rem;
-        border-radius: 14px;
-        font-size: 0.85rem;
-        line-height: 1.7;
-    }
-    .welcome-card .w-title { font-size: 0.95rem; }
+    .welcome-card { padding: 1rem 1.1rem; border-radius: 13px; font-size: 0.84rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -289,23 +281,29 @@ MAIL_TYPES = [
     ("📨", "자료 회신 요청",   "자료 회신 요청 메일을 작성하고 싶습니다."),
 ]
 
-# ── 시스템 프롬프트 빌더 ──────────────────────────────────────
+# ── 시스템 프롬프트 ───────────────────────────────────────────
 def build_system_prompt(sender: dict) -> str:
     mapping = [("name","이름"),("dept","부서"),("title","직급"),
                ("phone","연락처"),("email","이메일")]
-    has_any = any(sender.get(k, "").strip() for k, _ in mapping)
+    has_any = any(sender.get(k,"").strip() for k, _ in mapping)
 
     if has_any:
         lines = "\n".join(
             f"  - {lbl}: {sender.get(k,'').strip() or '[미입력]'}"
             for k, lbl in mapping
         )
-        sender_block = f"**발신자 정보 (메일 서명·발신란에 그대로 사용)**\n{lines}"
+        sender_block = f"**발신자 정보 (메일에 그대로 사용)**\n{lines}"
     else:
-        sender_block = "**발신자 정보**: 미입력 — 발신자 항목은 모두 [ ] 로 비워 두세요."
+        sender_block = "**발신자 정보**: 미입력 — 발신자 항목은 모두 [ ] 형태로 비워 두세요."
 
-    def v(key, fallback=""):
-        return sender.get(key, "").strip() or fallback
+    def v(key, fb=""):
+        return sender.get(key, "").strip() or fb
+
+    name  = v("name",  "[이름]")
+    dept  = v("dept",  "[부서]")
+    title = v("title", "[직급]")
+    phone = v("phone", "[연락처]")
+    email = v("email", "[이메일]")
 
     return f"""당신은 한전KDN의 전력IT 전문가이자 업무 메일 작성 도우미입니다.
 
@@ -354,27 +352,33 @@ Q2. 자료가 필요한 사유는 무엇인가요?
 Q3. 회신 기한은 언제인가요?
 Q4. 회신 방법은 어떻게 해주시면 되나요?
 
-**메일 완성 형식**
-제목: [시스템명/안건] 관련 [메일유형] 건
+**완성 메일 형식 (반드시 이 형식을 따르세요)**
+
+제목: [내용에 맞는 적절한 제목]
 
 수신: [수신자명] / [수신자 부서]
-발신: {v('name','[이름]')} / {v('dept','[부서]')}
+발신: {name} / {dept}
 날짜: [작성일]
 
-안녕하십니까, {v('dept','[부서]')}입니다.
+안녕하십니까, {dept} {name} {title}입니다.
 
-[본문 내용]
+[본문 내용 — 구체적이고 공식적인 한국어 문체]
 
 감사합니다.
+{name} 올림
 
-{v('name','[이름]')}
-{v('dept','[부서]')} | {v('title','[직급]')}
-{v('phone','[연락처]')} | {v('email','[이메일]')}
+---
+서명
+{name} | {dept} | {title}
+{phone} | {email}
+---
 
 규칙:
-- 공식적이고 명확한 한국어 문체 사용
-- 수신자 정보는 [수신자명/부서] 형태로 표시
-- 메일 완성 후 [ ] 항목을 실제 정보로 교체하라고 안내"""
+- 제목은 내용을 잘 반영하는 구체적인 문장으로 작성
+- 인사말은 반드시 "안녕하십니까, {dept} {name} {title}입니다."
+- 마무리는 반드시 "감사합니다.\\n{name} 올림"
+- 수신자 정보는 [수신자명/부서] 형태 유지
+- 메일 완성 후 [ ] 항목 교체 안내"""
 
 # ── API ───────────────────────────────────────────────────────
 def get_client():
@@ -389,23 +393,23 @@ def get_client():
 
 def stream_response(client, messages):
     stream = client.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        max_tokens=2048,
-        stream=True,
+        model="gpt-4o", messages=messages, max_tokens=2048, stream=True,
     )
     for chunk in stream:
         delta = chunk.choices[0].delta.content
         if delta:
             yield delta
 
-# ── 세션 상태 ─────────────────────────────────────────────────
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "trigger" not in st.session_state:
-    st.session_state.trigger = None
-if "sender" not in st.session_state:
-    st.session_state.sender = {"name":"","dept":"","title":"","phone":"","email":""}
+# ── 세션 상태 초기화 ──────────────────────────────────────────
+defaults = {
+    "messages": [],
+    "trigger": None,
+    "sender": {"name":"","dept":"","title":"","phone":"","email":""},
+    "editing_profile": False,
+}
+for k, val in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = val
 
 # ── 헤더 ─────────────────────────────────────────────────────
 st.markdown("""
@@ -419,37 +423,58 @@ st.markdown("""
 # ── 사이드바 ──────────────────────────────────────────────────
 with st.sidebar:
 
-    st.markdown('<div class="sb-label">👤 내 정보</div>', unsafe_allow_html=True)
-
+    # ── 내 정보 헤더 행 (라벨 + 수정/저장 버튼) ──────────────
     s = st.session_state.sender
     has_info = any(v.strip() for v in s.values())
 
-    # 저장된 정보 → 프로필 카드 (아바타 없음)
-    if has_info:
-        phone_line = f"📞 {s['phone']}" if s["phone"] else ""
-        email_line = f"✉ {s['email']}" if s["email"] else ""
-        contact = "&nbsp;&nbsp;".join(filter(None, [phone_line, email_line]))
-        st.markdown(f"""
-<div class="sender-card">
-  <span class="saved-badge">✓ 저장됨</span>
-  <div class="sender-name">{s['name'] or '–'} · {s['dept'] or '–'}</div>
-  <div class="sender-sub">{s['title'] or '–'}</div>
-  {f'<div class="sender-contact">{contact}</div>' if contact else ''}
+    lbl_col, btn_col = st.columns([3, 1])
+    with lbl_col:
+        st.markdown('<div class="sb-label">👤 내 정보</div>', unsafe_allow_html=True)
+    with btn_col:
+        st.markdown('<div style="margin-top:0.55rem"></div>', unsafe_allow_html=True)
+        if st.session_state.editing_profile:
+            if st.button("저장", key="btn_save", type="primary", use_container_width=True):
+                st.session_state.editing_profile = False
+                st.rerun()
+        else:
+            if st.button("수정", key="btn_edit", use_container_width=True):
+                st.session_state.editing_profile = True
+                st.rerun()
+
+    # ── 프로필 카드 (보기 모드) ───────────────────────────────
+    if not st.session_state.editing_profile:
+        if has_info:
+            phone_txt = f"📞 {s['phone']}" if s["phone"] else ""
+            email_txt = f"✉ {s['email']}"  if s["email"] else ""
+            contact   = "&nbsp;&nbsp;".join(filter(None, [phone_txt, email_txt]))
+            st.markdown(f"""
+<div class="profile-card">
+  <div class="profile-name">{s['name'] or '–'} · {s['dept'] or '–'}</div>
+  <div class="profile-sub">{s['title'] or '–'}</div>
+  {f'<div class="profile-contact">{contact}</div>' if contact else ''}
+</div>
+""", unsafe_allow_html=True)
+        else:
+            st.markdown("""
+<div class="profile-card">
+  <span class="profile-empty">정보없음 — 수정 버튼을 눌러 입력하세요</span>
 </div>
 """, unsafe_allow_html=True)
 
-    with st.expander("✏️ 정보 입력 / 수정", expanded=not has_info):
-        st.session_state.sender["name"]  = st.text_input("이름",   value=s["name"],  placeholder="홍길동",          key="inp_name")
-        st.session_state.sender["dept"]  = st.text_input("부서",   value=s["dept"],  placeholder="미터링시스템부",   key="inp_dept")
-        st.session_state.sender["title"] = st.text_input("직급",   value=s["title"], placeholder="선임",            key="inp_title")
-        st.session_state.sender["phone"] = st.text_input("연락처", value=s["phone"], placeholder="010-0000-0000",   key="inp_phone")
-        st.session_state.sender["email"] = st.text_input("이메일", value=s["email"], placeholder="hong@kdn.com",    key="inp_email")
+    # ── 입력 폼 (수정 모드) ───────────────────────────────────
+    else:
+        st.session_state.sender["name"]  = st.text_input("이름",   value=s["name"],  placeholder="홍길동",         key="inp_name")
+        st.session_state.sender["dept"]  = st.text_input("부서",   value=s["dept"],  placeholder="미터링시스템부",  key="inp_dept")
+        st.session_state.sender["title"] = st.text_input("직급",   value=s["title"], placeholder="선임",           key="inp_title")
+        st.session_state.sender["phone"] = st.text_input("연락처", value=s["phone"], placeholder="010-0000-0000",  key="inp_phone")
+        st.session_state.sender["email"] = st.text_input("이메일", value=s["email"], placeholder="hong@kdn.com",   key="inp_email")
 
+    # ── 메일 유형 ─────────────────────────────────────────────
     st.markdown('<div class="sb-label">✉️ 메일 유형 선택</div>', unsafe_allow_html=True)
 
     for icon, label, trigger_msg in MAIL_TYPES:
         if st.button(f"{icon}  {label}", key=f"mail_{label}", use_container_width=True):
-            st.session_state.trigger = trigger_msg
+            st.session_state.trigger  = trigger_msg
             st.session_state.messages = [
                 {"role": "system", "content": build_system_prompt(st.session_state.sender)}
             ]
@@ -457,7 +482,7 @@ with st.sidebar:
     st.markdown("")
     if st.button("🗑️ 대화 초기화", use_container_width=True, type="secondary"):
         st.session_state.messages = []
-        st.session_state.trigger = None
+        st.session_state.trigger  = None
         st.rerun()
 
     st.divider()
@@ -474,7 +499,7 @@ if client is None:
     )
     st.stop()
 
-# 첫 화면 안내
+# 첫 화면
 if not st.session_state.messages:
     st.markdown("""
 <div class="welcome-card">
