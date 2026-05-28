@@ -41,7 +41,7 @@ html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 """, unsafe_allow_html=True)
 
 # ── 상수 ─────────────────────────────────────────────────────
-SYSTEM_PROMPT = """당신은 KDN(한국전력기술)의 전력IT 전문가이자 업무 메일 작성 도우미입니다.
+SYSTEM_PROMPT = """당신은 한전KDN의 전력IT 전문가이자 업무 메일 작성 도우미입니다.
 
 역할:
 - 신입사원이 업무 메일을 작성하도록 친절하게 도와줍니다.
@@ -57,13 +57,13 @@ SYSTEM_PROMPT = """당신은 KDN(한국전력기술)의 전력IT 전문가이자
 항상 친절하고 실용적인 답변을 제공하세요."""
 
 QUICK_QUESTIONS = [
-    ("⚡ EMS란?", "EMS(에너지관리시스템)가 무엇인지 쉽게 설명해 주세요."),
+    ("⚡ EMS 운영 보고", "EMS(에너지관리시스템) 운영 보고 메일을 작성해 주세요."),
     ("📡 SCADA 개요", "SCADA 시스템의 역할과 구조를 설명해 주세요."),
     ("📊 AMI 보고서 메일", "AMI 스마트미터 현황 보고 메일을 작성해 주세요."),
     ("🔧 RTU 장애 메일", "RTU 통신 장애 발생 상황을 관련 부서에 알리는 메일을 작성해 주세요."),
     ("🤝 회의 요청 메일", "전력IT 시스템 개선 논의를 위한 회의 요청 메일을 작성해 주세요."),
     ("📋 DAS 점검 결과", "DAS 정기점검 결과 보고 메일 초안을 작성해 주세요."),
-    ("🔌 FEP 구성 설명", "FEP(프론트엔드 프로세서)의 역할을 신입사원에게 설명해 주세요."),
+    ("🔌 FEP 구성 설명", "FEP(프론트엔드 프로세서)의 구성을 그룹사 부서에 설명하는 메일을 작성해 주세요."),
     ("💡 MOS 작업 요청", "MOS 운영 관련 작업 협조 요청 메일을 작성해 주세요."),
 ]
 
@@ -97,10 +97,9 @@ with st.sidebar:
     st.markdown("### 🏢 KDN 소개")
     st.markdown("""
 <div class="intro-box">
-<b>한국전력기술(KDN)</b>은 전력IT 전문 기업으로,<br>
+<b>한전KDN</b>은 전력IT 전문 기업으로,<br>
 전력계통 운영에 필요한 SCADA, EMS, AMI, DAS 등<br>
 핵심 시스템을 개발·운영합니다.<br><br>
-• 설립: 1975년<br>
 • 주요 사업: 전력IT 시스템 구축·운영<br>
 • 계열: 한국전력공사 자회사
 </div>
@@ -144,7 +143,7 @@ if st.session_state.pending_question:
     user_input = st.session_state.pending_question
     st.session_state.pending_question = None
 else:
-    user_input = st.chat_input("메일 작성 요청 또는 전력IT 용어를 질문하세요...")
+    user_input = st.chat_input("메일 초안 작성을 요청해 보세요...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
