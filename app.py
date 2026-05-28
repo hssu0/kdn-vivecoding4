@@ -1,115 +1,93 @@
 import streamlit as st
 from openai import OpenAI, AuthenticationError, RateLimitError, APIConnectionError
-import os
+import os, re, html as _html
 
 st.set_page_config(page_title="KDN 업무 메일 도우미", page_icon="✉️", layout="wide")
 
 # ─────────────────────────────────────────────────────────────
-#  CSS  v2
+#  CSS  v3
 # ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
-/* 폰트 (Material Icons 보호: * 제외) */
 html, body, .stApp, .main,
-h1,h2,h3,h4,h5,h6,p,label,
-input,textarea,button,
+h1,h2,h3,h4,h5,h6,p,label,input,textarea,button,
 [data-testid="stSidebar"],
 [data-testid="stMarkdownContainer"],
 [data-testid="stChatInput"] textarea {
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 
-/* ═══════════════════════════════════════════
-   PAGE
-   ═══════════════════════════════════════════ */
-.stApp {
-    background: #f0f5ff !important;
-}
+/* ── 페이지 배경 ── */
+.stApp { background: #f0f5ff !important; }
 .main .block-container {
     background: transparent !important;
-    padding-top: 1.4rem !important;
+    padding-top: 1.3rem !important;
     max-width: 820px !important;
 }
 
-/* ═══════════════════════════════════════════
-   HEADER
-   ═══════════════════════════════════════════ */
+/* ── 헤더 ── */
 .kdn-header {
     background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #38bdf8 100%);
     color: #fff;
-    padding: 1.3rem 1.8rem;
+    padding: 1.2rem 1.8rem;
     border-radius: 16px;
-    margin-bottom: 1.1rem;
+    margin-bottom: 1rem;
     box-shadow: 0 4px 20px rgba(37,99,235,0.22);
 }
-.kdn-header h1 {
-    margin: 0 0 0.15rem;
-    font-size: 1.42rem;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-}
-.kdn-header p  { margin: 0; font-size: 0.84rem; opacity: 0.88; }
+.kdn-header h1 { margin: 0 0 0.15rem; font-size: 1.38rem; font-weight: 700; letter-spacing: -0.3px; }
+.kdn-header p  { margin: 0; font-size: 0.83rem; opacity: 0.88; }
 .kdn-pill {
     display: inline-block;
     background: rgba(255,255,255,0.16);
-    border: 1px solid rgba(255,255,255,0.32);
+    border: 1px solid rgba(255,255,255,0.3);
     border-radius: 99px;
-    padding: 0.12rem 0.65rem;
-    font-size: 0.69rem;
-    font-weight: 600;
-    margin-top: 0.5rem;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.69rem; font-weight: 600; margin-top: 0.45rem;
 }
 
-/* ═══════════════════════════════════════════
-   SIDEBAR
-   ═══════════════════════════════════════════ */
+/* ── 사이드바 ── */
 [data-testid="stSidebar"] {
     background: #ffffff !important;
     border-right: 1px solid #bfdbfe !important;
 }
-[data-testid="stSidebar"] > div:first-child { padding-top: 1rem; }
+[data-testid="stSidebar"] > div:first-child { padding-top: 0.9rem; }
 
-/* 섹션 라벨 */
 .sb-label {
-    font-size: 0.67rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin: 1.1rem 0 0.4rem;
-    padding-left: 2px;
+    font-size: 0.67rem; font-weight: 700; color: #64748b;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin: 1rem 0 0.38rem; padding-left: 2px;
 }
 
-/* 프로필 카드 */
+/* ── 프로필 카드 ── */
 .profile-card {
     background: #bfdbfe;
     border: 1px solid #93c5fd;
     border-radius: 10px;
-    padding: 0.8rem 0.95rem;
+    padding: 0.75rem 0.9rem;
     color: #1e3a5f;
     line-height: 1.6;
-    font-size: 0.84rem;
+    font-size: 0.83rem;
 }
-.profile-empty { color: #64748b; font-size: 0.81rem; }
-.profile-name  { font-weight: 700; color: #1e40af; font-size: 0.9rem; }
-.profile-sub   { color: #2563eb; font-size: 0.77rem; margin-top: 0.05rem; }
+.profile-empty { color: #64748b; font-size: 0.8rem; }
+.profile-name  { font-weight: 700; color: #1e40af; font-size: 0.89rem; }
+.profile-sub   { color: #2563eb; font-size: 0.76rem; margin-top: 0.04rem; }
 .profile-contact {
-    font-size: 0.72rem; color: #1d4ed8;
-    margin-top: 0.38rem; padding-top: 0.33rem;
+    font-size: 0.71rem; color: #1d4ed8;
+    margin-top: 0.35rem; padding-top: 0.3rem;
     border-top: 1px solid #93c5fd;
 }
 
-/* 사이드바 입력 */
+/* ── 사이드바 입력 ── */
 [data-testid="stSidebar"] [data-testid="stTextInput"] input {
     background: #f8fafc !important;
     border: 1px solid #bfdbfe !important;
-    border-radius: 8px !important;
-    font-size: 0.82rem !important;
+    border-radius: 7px !important;
+    font-size: 0.81rem !important;
     color: #1e293b !important;
     font-family: 'Noto Sans KR', sans-serif !important;
-    padding: 0.38rem 0.65rem !important;
+    padding: 0.34rem 0.6rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
     border-color: #2563eb !important;
@@ -117,165 +95,159 @@ input,textarea,button,
     background: #fff !important;
 }
 [data-testid="stSidebar"] label {
-    font-size: 0.76rem !important;
-    color: #64748b !important;
+    font-size: 0.75rem !important; color: #64748b !important;
     font-family: 'Noto Sans KR', sans-serif !important;
 }
 
 /* ── 사이드바 버튼 기본 ── */
 [data-testid="stSidebar"] [data-testid="stButton"] > button {
     font-family: 'Noto Sans KR', sans-serif !important;
-    background: #fff !important;
-    color: #334155 !important;
+    background: #fff !important; color: #334155 !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    font-size: 0.81rem !important;
-    font-weight: 500 !important;
-    text-align: left !important;
-    padding: 0.48rem 0.8rem !important;
-    transition: background 0.13s, border-color 0.13s, color 0.13s !important;
-    box-shadow: none !important;
-    margin-bottom: 3px !important;
+    border-radius: 8px !important; font-size: 0.8rem !important;
+    font-weight: 500 !important; text-align: left !important;
+    padding: 0.46rem 0.78rem !important;
+    transition: background 0.12s, border-color 0.12s !important;
+    box-shadow: none !important; margin-bottom: 3px !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button:hover {
-    background: #eff6ff !important;
-    border-color: #93c5fd !important;
+    background: #eff6ff !important; border-color: #93c5fd !important;
     color: #1d4ed8 !important;
-    box-shadow: none !important;
-    transform: none !important;
 }
 
-/* 저장(primary) */
-[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {
-    background: #2563eb !important;
-    color: #fff !important;
-    border-color: #2563eb !important;
-    font-weight: 600 !important;
-    text-align: center !important;
-}
-[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"]:hover {
-    background: #1d4ed8 !important;
-    border-color: #1d4ed8 !important;
-}
-
-/* 수정 버튼 – 작게 */
+/* 수정/저장 버튼 – sb-label 크기 */
 [data-testid="stSidebar"] [data-key="btn_edit"] > button,
 [data-testid="stSidebar"] [data-key="btn_save"] > button {
+    font-size: 0.67rem !important;
+    font-weight: 700 !important;
+    padding: 0.14rem 0.38rem !important;
+    border-radius: 5px !important;
     text-align: center !important;
-    padding: 0.3rem 0.5rem !important;
-    font-size: 0.76rem !important;
+    letter-spacing: 0.5px !important;
+    min-height: 0 !important;
+    line-height: 1.4 !important;
+}
+[data-testid="stSidebar"] [data-key="btn_save"] > button {
+    background: #2563eb !important; color: #fff !important;
+    border-color: #2563eb !important;
+}
+[data-testid="stSidebar"] [data-key="btn_save"] > button:hover {
+    background: #1d4ed8 !important; border-color: #1d4ed8 !important;
 }
 
-/* 대화 초기화 – 중립 회색 */
+/* 저장(primary 폴백) */
+[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"] {
+    background: #2563eb !important; color: #fff !important;
+    border-color: #2563eb !important; text-align: center !important;
+}
+[data-testid="stSidebar"] [data-testid="stButton"] > button[kind="primary"]:hover {
+    background: #1d4ed8 !important; border-color: #1d4ed8 !important;
+}
+
+/* 대화 초기화 */
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="secondary"] {
-    background: #f8fafc !important;
-    color: #64748b !important;
-    border-color: #e2e8f0 !important;
-    text-align: center !important;
+    background: #f8fafc !important; color: #64748b !important;
+    border-color: #e2e8f0 !important; text-align: center !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button[kind="secondary"]:hover {
-    background: #f1f5f9 !important;
-    color: #475569 !important;
-    border-color: #cbd5e1 !important;
+    background: #f1f5f9 !important; color: #475569 !important;
 }
 
-/* ═══════════════════════════════════════════
-   CHAT  –  아이콘 제거 + 말풍선 정렬
-   ═══════════════════════════════════════════ */
-
-/* 1) 아이콘(아바타) 완전 제거 */
-[data-testid="stChatMessageAvatar"] {
-    display: none !important;
-}
-
-/* 2) 메시지 래퍼 – 투명 컨테이너 */
-[data-testid="stChatMessage"] {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin-bottom: 0.55rem !important;
-    display: flex !important;
-    align-items: flex-start !important;
-    gap: 0 !important;
-}
-
-/* 3) 공통 말풍선 스타일 */
-[data-testid="stChatMessageContent"] {
-    border-radius: 14px !important;
-    padding: 0.82rem 1.1rem !important;
-    line-height: 1.72 !important;
-    flex: 0 0 auto !important;   /* ← 핵심: 너비 자동으로 줄어듦 */
-    width: auto !important;
-    max-width: 76% !important;
-    min-width: 80px !important;
-    word-break: break-word !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
-}
-
-/* 4) 어시스턴트 – 왼쪽, 파랑 */
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
-    justify-content: flex-start !important;
-}
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"])
-  [data-testid="stChatMessageContent"] {
-    background: #dbeafe !important;
-    border: 1px solid #bfdbfe !important;
-    border-radius: 4px 14px 14px 14px !important;
-}
-
-/* 5) 사용자 – 오른쪽, 흰색 */
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-    justify-content: flex-end !important;
-}
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"])
-  [data-testid="stChatMessageContent"] {
-    background: #ffffff !important;
-    border: 1px solid #bfdbfe !important;
-    border-radius: 14px 4px 14px 14px !important;
-}
-
-/* ═══════════════════════════════════════════
-   CHAT INPUT
-   ═══════════════════════════════════════════ */
+/* ── 채팅 입력창 ── */
 [data-testid="stChatInput"] {
     background: #fff !important;
     border-radius: 12px !important;
     border: 1.5px solid #bfdbfe !important;
-    box-shadow: 0 2px 12px rgba(37,99,235,0.08) !important;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.08) !important;
 }
 [data-testid="stChatInput"] textarea {
-    background: transparent !important;
-    border: none !important;
-    font-size: 0.9rem !important;
-    color: #1e293b !important;
+    background: transparent !important; border: none !important;
+    font-size: 0.9rem !important; color: #1e293b !important;
 }
 
-/* ═══════════════════════════════════════════
-   MISC
-   ═══════════════════════════════════════════ */
+/* ── 커서 애니메이션 ── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
 hr { border-color: #e2e8f0 !important; }
 
-/* ═══════════════════════════════════════════
-   모바일 반응형
-   ═══════════════════════════════════════════ */
+/* ── 모바일 ── */
 @media (max-width: 768px) {
-    .main .block-container {
-        max-width: 100% !important;
-        padding: 0.6rem 0.3rem 2rem !important;
-    }
-    .kdn-header { padding: 0.95rem 1.1rem; border-radius: 12px; margin-bottom: 0.8rem; }
-    .kdn-header h1 { font-size: 1.08rem; }
-    [data-testid="stChatMessageContent"] {
-        max-width: 88% !important;
-        padding: 0.7rem 0.9rem !important;
-    }
+    .main .block-container { max-width:100% !important; padding:0.6rem 0.3rem 2rem !important; }
+    .kdn-header { padding:0.9rem 1rem; border-radius:12px; margin-bottom:0.8rem; }
+    .kdn-header h1 { font-size:1.05rem; }
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────
-#  DATA
+#  마크다운 → HTML 변환 (chat bubble 내부용)
+# ─────────────────────────────────────────────────────────────
+def md_to_html(text: str) -> str:
+    t = _html.escape(text)
+    # 굵게 **...**
+    t = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', t, flags=re.DOTALL)
+    # 기울임 *...*
+    t = re.sub(r'\*([^*\n]+)\*', r'<em>\1</em>', t)
+    # 인라인 코드
+    t = re.sub(
+        r'`([^`]+)`',
+        r'<code style="background:#eff6ff;padding:.05em .3em;border-radius:4px;font-size:.85em">\1</code>',
+        t
+    )
+    # 수평선 (--- 단독 줄)
+    t = re.sub(
+        r'(?m)^-{3,}$',
+        '<hr style="border:none;border-top:1px solid #bfdbfe;margin:.5rem 0">',
+        t
+    )
+    # 헤더 → bold (메일에서 헤더 크기 방지)
+    t = re.sub(r'(?m)^#{1,6} (.+)$', r'<strong>\1</strong>', t)
+    # 단락 분리
+    blocks = re.split(r'\n{2,}', t)
+    parts = []
+    for b in blocks:
+        b = b.strip()
+        if not b:
+            continue
+        if b.startswith('<hr') or b.startswith('<strong>') or b.startswith('<em>'):
+            parts.append(f'<div style="margin:.2rem 0">{b}</div>')
+        else:
+            parts.append('<p style="margin:0 0 .42rem">' + b.replace('\n', '<br>') + '</p>')
+    return ''.join(parts)
+
+# ─────────────────────────────────────────────────────────────
+#  말풍선 HTML 생성
+# ─────────────────────────────────────────────────────────────
+def bubble(role: str, content_html: str, streaming: bool = False) -> str:
+    cursor = '<span style="opacity:.5;animation:blink 1s infinite">▌</span>' if streaming else ''
+    if role == "user":
+        return (
+            '<div style="display:flex;justify-content:flex-end;padding:.1rem 0 .55rem">'
+            '<div style="background:#ffffff;border:1px solid #bfdbfe;'
+            'border-radius:14px 4px 14px 14px;padding:.82rem 1.1rem;'
+            'max-width:75%;font-size:.9rem;line-height:1.72;color:#1e293b;'
+            'word-break:break-word;box-shadow:0 1px 4px rgba(0,0,0,.05)">'
+            f'{content_html}{cursor}</div></div>'
+        )
+    else:
+        return (
+            '<div style="display:flex;justify-content:flex-start;padding:.1rem 0 .55rem">'
+            '<div style="background:#dbeafe;border:1px solid #bfdbfe;'
+            'border-radius:4px 14px 14px 14px;padding:.82rem 1.1rem;'
+            'max-width:75%;font-size:.9rem;line-height:1.72;color:#1e293b;'
+            'word-break:break-word;box-shadow:0 1px 4px rgba(37,99,235,.08)">'
+            f'{content_html}{cursor}</div></div>'
+        )
+
+def render_history():
+    """대화 히스토리를 HTML 버블로 출력."""
+    for msg in st.session_state.messages:
+        if msg["role"] == "system":
+            continue
+        st.markdown(bubble(msg["role"], md_to_html(msg["content"])), unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────
+#  데이터
 # ─────────────────────────────────────────────────────────────
 MAIL_TYPES = [
     ("📊", "시스템 현황 보고",  "시스템 현황 보고 메일을 작성하고 싶습니다."),
@@ -287,13 +259,12 @@ MAIL_TYPES = [
 ]
 
 # ─────────────────────────────────────────────────────────────
-#  SYSTEM PROMPT
+#  시스템 프롬프트
 # ─────────────────────────────────────────────────────────────
 def build_system_prompt(sender: dict) -> str:
     mapping = [("name","이름"),("dept","부서"),("title","직급"),
                ("phone","연락처"),("email","이메일")]
     has_any = any(sender.get(k,"").strip() for k, _ in mapping)
-
     if has_any:
         lines = "\n".join(
             f"  - {lbl}: {sender.get(k,'').strip() or '[미입력]'}"
@@ -303,54 +274,50 @@ def build_system_prompt(sender: dict) -> str:
     else:
         sender_block = "**발신자 정보**: 미입력 — 발신자 항목은 모두 [ ] 형태로 비워 두세요."
 
-    def v(key, fb=""):
-        return sender.get(key,"").strip() or fb
+    def v(k, fb=""):
+        return sender.get(k,"").strip() or fb
 
-    name  = v("name",  "[이름]");  dept  = v("dept",  "[부서]")
-    title = v("title", "[직급]");  phone = v("phone", "[연락처]")
-    email = v("email", "[이메일]")
+    n = v("name","[이름]"); d = v("dept","[부서]")
+    tl = v("title","[직급]"); ph = v("phone","[연락처]"); em = v("email","[이메일]")
 
     return f"""당신은 한전KDN의 전력IT 전문가이자 업무 메일 작성 도우미입니다.
 
 {sender_block}
 
 **대화 방식**
-- 메일 유형이 선택되면 필요한 정보를 **한 번에 한 가지씩** 친절하게 질문하세요.
+- 메일 유형이 선택되면 필요한 정보를 한 번에 한 가지씩 친절하게 질문하세요.
 - 각 답변 후 자연스럽게 다음 질문으로 넘어가세요.
 - 모든 정보가 수집되면 "감사합니다! 지금 바로 메일 초안을 작성해 드릴게요. ✉️" 라고 말하고 완성된 메일을 작성하세요.
 
-**메일 유형별 필요 정보**
-
-[시스템 현황 보고] Q1.보고 시스템명 Q2.보고 기간 Q3.주요 운영 현황 Q4.특이사항(없으면 "없음")
-[장애 보고] Q1.장애 시스템명 Q2.장애 발생 일시 Q3.증상·영향 범위 Q4.현재 조치 상황
-[회의 요청] Q1.회의 목적·안건 Q2.희망 일시 Q3.참석 대상 Q4.장소·방식(온/오프라인)
-[점검 결과] Q1.점검 시스템명 Q2.점검 일시 Q3.점검 결과 Q4.후속 조치(없으면 "없음")
-[작업 협조 요청] Q1.작업 내용 Q2.관련 시스템명 Q3.협조 일정 Q4.협조 부서·담당자
-[자료 회신 요청] Q1.요청 자료명·내용 Q2.필요 사유 Q3.회신 기한 Q4.회신 방법
+**메일 유형별 질문 순서**
+[시스템 현황 보고] Q1.보고 시스템명 Q2.보고 기간 Q3.운영 현황 Q4.특이사항
+[장애 보고] Q1.장애 시스템명 Q2.발생 일시 Q3.증상·영향 Q4.조치 상황
+[회의 요청] Q1.안건 Q2.희망 일시 Q3.참석 대상 Q4.장소·방식
+[점검 결과] Q1.점검 시스템명 Q2.점검 일시 Q3.결과 Q4.후속 조치
+[작업 협조 요청] Q1.작업 내용 Q2.시스템명 Q3.일정 Q4.협조 부서·담당자
+[자료 회신 요청] Q1.자료명·내용 Q2.필요 사유 Q3.기한 Q4.회신 방법
 
 **완성 메일 형식 (반드시 준수)**
 
 제목: [내용에 맞는 구체적인 제목]
 
 수신: [수신자명] / [수신자 부서]
-발신: {name} / {dept}
+발신: {n} / {d}
 날짜: [작성일]
 
-안녕하십니까, {dept} {name} {title}입니다.
+안녕하십니까, {d} {n} {tl}입니다.
 
 [본문 — 공식적이고 명확한 한국어 문체]
 
 감사합니다.
-{name} 올림
+{n} 올림
 
----
-{name} | {dept} | {title}
-{phone} | {email}
----
+{n} | {d} | {tl} | {ph} | {em}
 
 규칙:
-- 인사말 형식 고정: "안녕하십니까, {dept} {name} {title}입니다."
-- 마무리 형식 고정: "감사합니다.\\n{name} 올림"
+- 서명 한 줄({n} | {d} | {tl} | {ph} | {em})은 마크다운 서식(굵게, 헤딩 등) 없이 일반 텍스트로 작성
+- 인사말 고정: "안녕하십니까, {d} {n} {tl}입니다."
+- 마무리 고정: "감사합니다.\\n{n} 올림"
 - 수신자는 [수신자명/부서] 유지
 - 완성 후 [ ] 항목 교체 안내"""
 
@@ -367,17 +334,24 @@ def get_client():
         return None
     return OpenAI(api_key=api_key)
 
-def stream_response(client, messages):
+def stream_to_bubble(client, messages, placeholder):
+    """스트리밍 응답을 말풍선에 출력하고 전체 텍스트 반환."""
+    chunks = []
     stream = client.chat.completions.create(
         model="gpt-4o", messages=messages, max_tokens=2048, stream=True,
     )
     for chunk in stream:
         delta = chunk.choices[0].delta.content
         if delta:
-            yield delta
+            chunks.append(delta)
+            partial = _html.escape("".join(chunks)).replace('\n', '<br>')
+            placeholder.markdown(bubble("assistant", partial, streaming=True), unsafe_allow_html=True)
+    resp = "".join(chunks)
+    placeholder.markdown(bubble("assistant", md_to_html(resp)), unsafe_allow_html=True)
+    return resp
 
 # ─────────────────────────────────────────────────────────────
-#  SESSION STATE
+#  세션 상태
 # ─────────────────────────────────────────────────────────────
 for k, val in {
     "messages": [], "trigger": None,
@@ -388,7 +362,7 @@ for k, val in {
         st.session_state[k] = val
 
 # ─────────────────────────────────────────────────────────────
-#  HEADER
+#  헤더
 # ─────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="kdn-header">
@@ -399,18 +373,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────
-#  SIDEBAR
+#  사이드바
 # ─────────────────────────────────────────────────────────────
 with st.sidebar:
     s        = st.session_state.sender
     has_info = any(v.strip() for v in s.values())
 
-    # 내 정보 헤더 + 수정/저장 버튼
     lbl_col, btn_col = st.columns([3, 1])
     with lbl_col:
         st.markdown('<div class="sb-label">👤 내 정보</div>', unsafe_allow_html=True)
     with btn_col:
-        st.markdown('<div style="margin-top:0.5rem"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top:.52rem"></div>', unsafe_allow_html=True)
         if st.session_state.editing_profile:
             if st.button("저장", key="btn_save", type="primary", use_container_width=True):
                 st.session_state.editing_profile = False
@@ -420,7 +393,6 @@ with st.sidebar:
                 st.session_state.editing_profile = True
                 st.rerun()
 
-    # 보기 모드
     if not st.session_state.editing_profile:
         if has_info:
             pt = f"📞 {s['phone']}" if s["phone"] else ""
@@ -437,8 +409,6 @@ with st.sidebar:
 <div class="profile-card">
   <span class="profile-empty">정보없음 — 수정을 눌러 입력하세요</span>
 </div>""", unsafe_allow_html=True)
-
-    # 수정 모드
     else:
         st.session_state.sender["name"]  = st.text_input("이름",   value=s["name"],  placeholder="홍길동",         key="inp_name")
         st.session_state.sender["dept"]  = st.text_input("부서",   value=s["dept"],  placeholder="미터링시스템부",  key="inp_dept")
@@ -446,7 +416,6 @@ with st.sidebar:
         st.session_state.sender["phone"] = st.text_input("연락처", value=s["phone"], placeholder="010-0000-0000",  key="inp_phone")
         st.session_state.sender["email"] = st.text_input("이메일", value=s["email"], placeholder="hong@kdn.com",   key="inp_email")
 
-    # 메일 유형
     st.markdown('<div class="sb-label">✉️ 메일 유형</div>', unsafe_allow_html=True)
     for icon, label, trigger_msg in MAIL_TYPES:
         if st.button(f"{icon}  {label}", key=f"mail_{label}", use_container_width=True):
@@ -465,7 +434,7 @@ with st.sidebar:
     st.caption("AI 답변은 초안 참고용입니다.\n실제 발송 전 내용을 반드시 검토하세요.")
 
 # ─────────────────────────────────────────────────────────────
-#  MAIN
+#  메인 채팅 영역
 # ─────────────────────────────────────────────────────────────
 client = get_client()
 if client is None:
@@ -476,39 +445,40 @@ if client is None:
     )
     st.stop()
 
-# 첫 화면 웰컴 – 어시스턴트 버블
+# 첫 화면 웰컴
 if not st.session_state.messages:
-    with st.chat_message("assistant"):
-        st.markdown(
-            "👋 안녕하세요! **KDN 업무 메일 도우미**입니다.\n\n"
-            "왼쪽 사이드바에서 **내 정보**를 먼저 입력하시면 메일 서명이 자동으로 완성됩니다.  \n"
-            "이후 **메일 유형**을 선택하면 필요한 정보를 하나씩 여쭤본 뒤 초안을 작성해 드립니다.\n\n"
-            "💡 *내 정보는 새 메일을 작성할 때마다 자동으로 반영됩니다.*"
-        )
+    welcome = (
+        "👋 안녕하세요! **KDN 업무 메일 도우미**입니다.\n\n"
+        "왼쪽 사이드바에서 **내 정보**를 먼저 입력하시면 메일 서명이 자동으로 완성됩니다.  \n"
+        "이후 **메일 유형**을 선택하면 필요한 정보를 하나씩 여쭤본 뒤 초안을 작성해 드립니다.\n\n"
+        "💡 *내 정보는 새 메일을 작성할 때마다 자동으로 반영됩니다.*"
+    )
+    st.markdown(bubble("assistant", md_to_html(welcome)), unsafe_allow_html=True)
 
-# 대화 히스토리
-for msg in st.session_state.messages:
-    if msg["role"] == "system":
-        continue
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# 히스토리 출력
+render_history()
 
-# 버튼 클릭 → 첫 AI 응답
+# ── 버튼 클릭 트리거 처리 ──
 if st.session_state.trigger:
     user_text = st.session_state.trigger
     st.session_state.trigger = None
     st.session_state.messages.append({"role": "user", "content": user_text})
-    with st.chat_message("user"):
-        st.markdown(user_text)
-    with st.chat_message("assistant"):
-        try:
-            resp = st.write_stream(stream_response(client, st.session_state.messages))
-            st.session_state.messages.append({"role": "assistant", "content": resp})
-        except Exception as e:
-            st.error(f"⚠️ 오류: {str(e)}")
+    st.markdown(bubble("user", md_to_html(user_text)), unsafe_allow_html=True)
+    ph = st.empty()
+    try:
+        resp = stream_to_bubble(client, st.session_state.messages, ph)
+        st.session_state.messages.append({"role": "assistant", "content": resp})
+    except AuthenticationError:
+        ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
+    except RateLimitError:
+        ph.warning("⏳ 요청 한도 초과. 잠시 후 다시 시도해 주세요.")
+    except APIConnectionError:
+        ph.error("🌐 네트워크 오류. 인터넷 연결을 확인해 주세요.")
+    except Exception as e:
+        ph.error(f"⚠️ 오류: {str(e)}")
     st.rerun()
 
-# 직접 입력
+# ── 직접 입력 처리 ──
 user_input = st.chat_input("답변을 입력하거나 직접 메일을 요청해 보세요...")
 if user_input:
     if not st.session_state.messages:
@@ -516,17 +486,16 @@ if user_input:
             {"role": "system", "content": build_system_prompt(st.session_state.sender)}
         )
     st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    with st.chat_message("assistant"):
-        try:
-            resp = st.write_stream(stream_response(client, st.session_state.messages))
-            st.session_state.messages.append({"role": "assistant", "content": resp})
-        except AuthenticationError:
-            st.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
-        except RateLimitError:
-            st.warning("⏳ 요청 한도 초과. 잠시 후 다시 시도해 주세요.")
-        except APIConnectionError:
-            st.error("🌐 네트워크 오류. 인터넷 연결을 확인해 주세요.")
-        except Exception as e:
-            st.error(f"⚠️ 오류: {str(e)}")
+    st.markdown(bubble("user", md_to_html(user_input)), unsafe_allow_html=True)
+    ph = st.empty()
+    try:
+        resp = stream_to_bubble(client, st.session_state.messages, ph)
+        st.session_state.messages.append({"role": "assistant", "content": resp})
+    except AuthenticationError:
+        ph.error("❌ API 키 인증 실패. OPENAI_API_KEY를 확인하세요.")
+    except RateLimitError:
+        ph.warning("⏳ 요청 한도 초과. 잠시 후 다시 시도해 주세요.")
+    except APIConnectionError:
+        ph.error("🌐 네트워크 오류. 인터넷 연결을 확인해 주세요.")
+    except Exception as e:
+        ph.error(f"⚠️ 오류: {str(e)}")
